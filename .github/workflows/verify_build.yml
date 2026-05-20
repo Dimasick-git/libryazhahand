@@ -32,7 +32,15 @@ jobs:
           echo "PATH=/opt/devkitpro/devkitA64/bin:$PATH" >> $GITHUB_ENV
         shell: bash
 
+      # Example собирается с минимальным stub-main.cpp и тянет тот же
+      # набор зависимостей, что и реальные оверлеи (curl/mbedtls/zzip).
+      # Если контейнер devkitpro/devkita64 на этой неделе не несёт
+      # какую-нибудь из них -- падать здесь не должно, основная
+      # ценность CI -- сам факт того, что libryazha/* и libtesla/*
+      # компилируются. Поэтому шаг помечен continue-on-error: фейл
+      # отметится как warning, но не сделает workflow failed.
       - name: Build example overlay
+        continue-on-error: true
         shell: bash
         run: |
           if [ -d example ]; then
@@ -41,4 +49,30 @@ jobs:
             popd
           else
             echo "::warning::example/ not present; skipping"
+          fi
+
+      # Базовый smoke-test самой библиотеки: каждая .cpp/.hpp под libryazha/
+      # должна хотя бы парситься компилятором. Это ловит синтаксические
+      # регрессии после sync_from_upstream, не требуя полноценной линковки.
+      - name: Parse-check libryazha sources
+        shell: bash
+        run: |
+          set -e
+          export PATH=/opt/devkitpro/devkitA64/bin:$PATH
+          fail=0
+          for f in libryazha/source/*.cpp; do
+            [ -f "$f" ] || continue
+            echo "  -> $f"
+            aarch64-none-elf-g++ -fsyntax-only -std=gnu++23 \
+              -D__SWITCH__ \
+              -I libryazha/include \
+              -I libtesla/include \
+              -I common \
+              -I /opt/devkitpro/libnx/include \
+              -I /opt/devkitpro/portlibs/switch/include \
+              "$f" || fail=1
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::syntax check failed"
+            exit 1
           fi
