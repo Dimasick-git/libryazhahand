@@ -48,8 +48,11 @@ SOURCES		:= source common
 INCLUDES	:= source common include
 NO_ICON		:= 1
 
-# This location should reflect where you place the libultrahand directory (lib can vary between projects).
-include ${TOPDIR}/lib/libultrahand/ultrahand.mk
+# When this example is built directly from inside the libryazhahand repo, the
+# library is the parent directory. Real overlays should instead place the
+# submodule under lib/libryazhahand/ and use:
+#   include ${TOPDIR}/lib/libryazhahand/ryazhahand.mk
+include ${TOPDIR}/../ryazhahand.mk
 
 
 #---------------------------------------------------------------------------------

@@ -107,6 +107,12 @@ namespace ult {
     //extern bool isLauncher;
     extern std::atomic<bool> internalTouchReleased;
     extern u32 layerEdge;
+
+    // Long-press duration (in ms) used by ToggleListItem and other hold-to-confirm
+    // widgets. Configurable from the launcher's Input settings. 500..10000 are
+    // the recommended bounds; default 3000 matches the historical hard-coded value.
+    // (Backport of ppkantorski/libultrahand#16.)
+    extern u32 holdDurationMs;
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
     extern bool useLaunchCombos;
@@ -312,6 +318,8 @@ namespace ult {
     extern std::string FAVORITE;
     extern std::string MAIN_SETTINGS;
     extern std::string UI_SETTINGS;
+    extern std::string INPUT;      // libultrahand#16: Input settings category
+    extern std::string HOLD_TIME;  // libultrahand#16: long-press duration label
 
     extern std::string WIDGET;
     extern std::string WIDGET_ITEMS;

@@ -208,6 +208,12 @@ namespace ult {
     std::atomic<bool> internalTouchReleased(true);
 
     u32 layerEdge = 0;
+
+    // libultrahand#16: configurable long-press duration. Default 3000 ms keeps
+    // the legacy hard-coded behavior; a launcher UI can persist a new value to
+    // its config.ini and update this at runtime.
+    u32 holdDurationMs = 3000;
+
     bool useRightAlignment = false;
     bool useSwipeToOpen = true;
     bool useLaunchCombos = true;
@@ -403,6 +409,8 @@ namespace ult {
     std::string FAVORITE;
     std::string MAIN_SETTINGS;
     std::string UI_SETTINGS;
+    std::string INPUT;       // libultrahand#16
+    std::string HOLD_TIME;   // libultrahand#16
     std::string WIDGET;
     std::string WIDGET_ITEMS;
     std::string WIDGET_SETTINGS;
@@ -617,6 +625,9 @@ namespace ult {
         {&FAVORITE,                   "FAVORITE",                   "Favorite"},
         {&MAIN_SETTINGS,              "MAIN_SETTINGS",              "Main Settings"},
         {&UI_SETTINGS,                "UI_SETTINGS",                "UI Settings"},
+        // libultrahand#16 — Input settings for configurable hold duration.
+        {&INPUT,                      "INPUT",                      "Input"},
+        {&HOLD_TIME,                  "HOLD_TIME",                  "Hold Time"},
         {&WIDGET,                     "WIDGET",                     "Widget"},
         {&WIDGET_ITEMS,               "WIDGET_ITEMS",               "Widget Items"},
         {&WIDGET_SETTINGS,            "WIDGET_SETTINGS",            "Widget Settings"},

@@ -43,7 +43,13 @@ EXCLUDED_PATHS = {
     "README.md",
     ".github/FUNDING.yml",
     ".github/workflows/sync_from_upstream.yml",
+    ".github/workflows/verify_build.yml",
     "scripts/sync_from_upstream.py",
+    # Upstream's mk file lives under our renamed name (ryazhahand.mk).
+    # Never bring back the old filename — downstream Makefiles include
+    # ryazhahand.mk and would break otherwise.
+    "ultrahand.mk",
+    "example/Makefile",
 }
 
 

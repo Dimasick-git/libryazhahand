@@ -8117,13 +8117,18 @@ namespace tsl {
                     
                     
                     this->m_state = !this->m_state;
-                    
+
                     if (!m_delayedHandle)
                         this->setState(this->m_state);
-                    
+
                     this->m_stateChangedListener(this->m_state);
-                    this->triggerClickAnimation();
-                    
+                    // libultrahand#16: don't trigger the click animation if the
+                    // owner explicitly disabled it — otherwise the hold-progress
+                    // bar stays invisible on those items even though the click
+                    // path tries to render one.
+                    if (m_flags.m_useClickAnimation)
+                        this->triggerClickAnimation();
+
                     return Element::onClick(keys);
                 }
 
