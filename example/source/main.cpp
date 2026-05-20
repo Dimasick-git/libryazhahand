@@ -8,6 +8,9 @@
  * Лицензия: GPL-2.0 (см. ../../LICENSE)
  */
 
+// TESLA_INIT_IMPL разворачивает в этой TU init-блок tesla.hpp
+// (отдельный от libtesla/source/tesla.cpp). Должен стоять
+// строго в одной TU оверлея.
 #define TESLA_INIT_IMPL
 #include <tesla.hpp>
 
