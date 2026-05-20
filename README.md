@@ -1,53 +1,94 @@
 # libryazhahand
 
-Lightweight Tesla/Ultra-overlay library used by the [Ryazha-CLK](https://github.com/Dimanchikgshehsbshene/RCU)
-ecosystem. Source-compatible fork of [ppkantorski/libultrahand](https://github.com/ppkantorski/libultrahand)
-with one practical change: the runtime config namespace is `ryazhahand` instead of
-`ultrahand`, so overlays built against this library look in
-`/config/ryazhahand/` for themes, sounds, and overlay settings.
+Лёгкая Tesla/overlay-библиотека, лежащая в основе экосистемы
+[Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay)
+и [RCU (ryazha-clk)](https://github.com/Dimanchikgshehsbshene/RCU).
+Это source-совместимый форк
+[ppkantorski/libultrahand](https://github.com/ppkantorski/libultrahand) с одним
+практическим изменением: runtime-namespace конфигурации называется
+`ryazhahand`, а не `ultrahand`. Оверлеи, собранные с этой библиотекой,
+читают темы, звуки и настройки из `/config/ryazhahand/`.
 
-## Relationship to upstream
+- Автор форка: **Dimasick-git**
+- Лицензия: **GPL-2.0** (см. `LICENSE`, оригинальная лицензия upstream
+  сохранена в `SUB_LICENSE`)
+- Версия API: совместима с upstream libultrahand на коммите, указанном в
+  `.upstream-sync`
 
-`scripts/sync_from_upstream.py` runs daily via GitHub Actions and mirrors new
-commits from `ppkantorski/libultrahand`. Each upstream commit is replayed on top
-of this tree with a narrow set of branding rewrites (see `CONTENT_REWRITES` in
-the script). Public namespaces, headers, and class/function signatures match
-upstream exactly so swapping libraries is a one-line change in your `Makefile`.
+## Что внутри
 
-The current upstream checkpoint is recorded in `.upstream-sync`. Manual sync:
+| Каталог | Описание |
+|------------|------------------------------------------------------------|
+| `libryazha/` | Логика библиотеки: I/O, JSON, INI, hex, путь, аудио, haptics. |
+| `libtesla/` | Tesla overlay-фреймворк: GUI, элементы, ввод, рендер. |
+| `common/` | Общий код: download, exception wrap, cJSON, get_funcs. |
+| `example/` | Минимальный референсный overlay (собирается через CI). |
+| `scripts/` | `sync_from_upstream.py` — авто-синхронизация с upstream. |
 
-```sh
-python3 scripts/sync_from_upstream.py            # apply
-python3 scripts/sync_from_upstream.py --dry-run  # preview
-```
+## Подключение в проект
 
-## Usage in a project
-
-Add it as a git submodule under your overlay:
+Добавьте библиотеку как git submodule в оверлей:
 
 ```sh
 git submodule add https://github.com/Dimanchikgshehsbshene/libryazhahand.git \
     lib/libryazhahand
 ```
 
-Then in your overlay's `Makefile`:
+Затем в `Makefile` оверлея:
 
 ```make
-include ${TOPDIR}/lib/libryazhahand/ultrahand.mk
+include ${TOPDIR}/lib/libryazhahand/ryazhahand.mk
 ```
 
-That's it — the include path, source list, and link flags are pulled in
-automatically.
+Этого достаточно — пути include, список source-файлов и -I флаги
+подтянутся автоматически. Линковка libs (`-lcurl -lz -lmbedtls
+-lmbedx509 -lmbedcrypto -lnx`) и `-D__SWITCH__` остаются на стороне
+оверлея, как у upstream.
 
-## Config directory
+## Каталоги конфигурации
 
-| Asset      | Lives in                                                  |
-|------------|-----------------------------------------------------------|
-| Themes     | `sdmc:/config/ryazhahand/themes/`                         |
-| Sounds     | `sdmc:/config/ryazhahand/sounds/`                         |
-| Overlays   | `sdmc:/switch/.overlays/`                                 |
-| Library config | `sdmc:/config/ryazhahand/config.ini`                  |
+| Что | Лежит в |
+|-----------------|-----------------------------------------------------------|
+| Темы | `sdmc:/config/ryazhahand/themes/` |
+| Звуки | `sdmc:/config/ryazhahand/sounds/` |
+| Оверлеи | `sdmc:/switch/.overlays/` |
+| Конфиг библиотеки | `sdmc:/config/ryazhahand/config.ini` |
 
-## License
+## Синхронизация с upstream
 
-GPL-2.0 — see `LICENSE`. Upstream license is preserved in `SUB_LICENSE`.
+`scripts/sync_from_upstream.py` запускается раз в сутки через GitHub
+Actions (`.github/workflows/sync_from_upstream.yml`) и переносит новые
+коммиты из `ppkantorski/libultrahand` в это дерево. Каждый коммит
+проходит через узкий набор branding-переписывалок (см. `CONTENT_REWRITES`
+в скрипте). Публичные namespace, заголовки, сигнатуры классов и функций
+совпадают с upstream, чтобы смена библиотеки в оверлее сводилась к
+изменению `include` в `Makefile`.
+
+Текущая отметка upstream хранится в `.upstream-sync`. Ручной запуск:
+
+```sh
+python3 scripts/sync_from_upstream.py            # применить
+python3 scripts/sync_from_upstream.py --dry-run  # предпросмотр
+```
+
+## Сборка example
+
+```sh
+cd example
+make -j$(nproc)
+```
+
+CI (`.github/workflows/verify_build.yml`) делает то же самое в контейнере
+`devkitpro/devkita64` и помечает PR красным, если сборка падает.
+
+## Где используется
+
+- [Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay) — основной overlay-меню для CFW Switch.
+- [RCU / ryazha-clk](https://github.com/Dimanchikgshehsbshene/RCU) — overlay управления частотами и режимами CFW.
+- RyazhaTune, Ryazha-Status-Monitor, Living_Ladders — модули из общей
+  экосистемы, использующие тот же libryazhahand.
+
+## Лицензия
+
+GPL-2.0 (см. `LICENSE`). Все upstream-права сохранены, авторство
+оригинала `ppkantorski` указано в `SUB_LICENSE`.

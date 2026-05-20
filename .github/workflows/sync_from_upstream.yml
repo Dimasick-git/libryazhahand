@@ -2,12 +2,13 @@ name: Sync from libultrahand upstream
 
 on:
   schedule:
-    # Run daily at 05:00 UTC (one hour after RCU's HOC sync so they don't collide)
+    # Запуск ежедневно в 05:00 UTC (на час позже HOC-синка RCU,
+    # чтобы не конкурировать за rate-limit GitHub).
     - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry run (no commits)'
+        description: 'Dry run (без коммита)'
         required: false
         default: 'false'
 

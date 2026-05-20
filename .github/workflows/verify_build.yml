@@ -5,10 +5,10 @@ on:
     branches: [main]
     paths:
       - 'libtesla/**'
-      - 'libultra/**'
+      - 'libryazha/**'
       - 'common/**'
       - 'example/**'
-      - 'ultrahand.mk'
+      - 'ryazhahand.mk'
       - '.github/workflows/verify_build.yml'
   pull_request:
   workflow_dispatch:

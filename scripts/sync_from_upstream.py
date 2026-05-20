@@ -9,6 +9,9 @@ stays a libryazhahand rather than a libultrahand checkout.
 Branding rewrites are intentionally narrow: namespace identifiers and other
 internal API names are kept identical to upstream so application code can
 swap libraries by changing the include path / Makefile snippet only.
+
+Path mapping: upstream uses `libultra/`, we keep our renamed `libryazha/`.
+Files copied from upstream `libultra/foo` land in our tree at `libryazha/foo`.
 """
 
 from __future__ import annotations
@@ -31,12 +34,27 @@ CONTENT_REWRITES: list[tuple[str, str]] = [
     (r'"Ultrahand"', '"RyazhaHand"'),
     # Config / runtime directory name used by the library.
     (r'"ultrahand"', '"ryazhahand"'),
-    # README/doc-only mentions — leave package URLs like
+    # README/doc-only mentions: leave package URLs like
     # github.com/ppkantorski/Ultrahand-Overlay untouched by anchoring on
     # word boundaries.
     (r"\bUltrahand-Overlay\b", "Ultrahand-Overlay"),  # keep upstream URL ref
     (r"\bUltrahand Overlay\b", "RyazhaHand Overlay"),
 ]
+
+# Path mapping: upstream uses `libultra/`, we keep our renamed `libryazha/`.
+# Public API (#include <ultra.hpp>, namespace ult::) stays identical so that
+# overlays don't need any source-level change.
+PATH_REWRITES: list[tuple[str, str]] = [
+    ("libultra/", "libryazha/"),
+]
+
+
+def remap(path: str) -> str:
+    for src, dst in PATH_REWRITES:
+        if path.startswith(src):
+            return dst + path[len(src):]
+    return path
+
 
 # Paths to never copy in (we don't want our README/workflow blown away).
 EXCLUDED_PATHS = {
@@ -46,10 +64,13 @@ EXCLUDED_PATHS = {
     ".github/workflows/verify_build.yml",
     "scripts/sync_from_upstream.py",
     # Upstream's mk file lives under our renamed name (ryazhahand.mk).
-    # Never bring back the old filename — downstream Makefiles include
+    # Never bring back the old filename: downstream Makefiles include
     # ryazhahand.mk and would break otherwise.
     "ultrahand.mk",
     "example/Makefile",
+    "example/source/main.cpp",
+    # Our libryazha/README.md is hand-translated.
+    "libultra/README.md",
 }
 
 
@@ -127,9 +148,10 @@ def main() -> int:
             if len(parts) < 2:
                 continue
             status = parts[0]
-            path   = parts[-1]
-            if path in EXCLUDED_PATHS:
+            upath  = parts[-1]            # path in upstream tree
+            if upath in EXCLUDED_PATHS:
                 continue
+            path = remap(upath)           # path in our tree
             dst = our_repo / path
 
             if status.startswith("D"):
@@ -140,11 +162,11 @@ def main() -> int:
                         changed += 1
                 continue
 
-            src = upstream / path
+            src = upstream / upath
             if not src.exists():
                 continue
 
-            print(f"  ~ {status[:1]} {path}")
+            print(f"  ~ {status[:1]} {upath} -> {path}")
             if args.dry_run:
                 changed += 1
                 continue

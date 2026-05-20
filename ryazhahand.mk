@@ -1,31 +1,28 @@
-#--------------------------------------------------------------------------------- 
-# Ultrahand Library Configuration
-# Auto-detects libultrahand directory location
-#--------------------------------------------------------------------------------- 
+#---------------------------------------------------------------------------------
+# RyazhaHand library configuration
+# Auto-detects libryazhahand directory location.
+#
+# Подключается в Makefile оверлея одной строкой:
+#   include ${TOPDIR}/lib/libryazhahand/ryazhahand.mk
+#---------------------------------------------------------------------------------
 
-# Assume TOPDIR is the root project directory where you run make
 TOPDIR ?= $(CURDIR)
 
-# Get the absolute path of this .mk file directory
-ULTRA_ABS := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
+# Absolute path of this .mk file directory.
+RYZ_ABS := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 
-# Convert absolute path to relative path from TOPDIR
-ULTRA_DIR := $(subst $(TOPDIR)/,,$(ULTRA_ABS))
-
-# If ULTRA_DIR equals ULTRA_ABS, then ULTRA_ABS is outside TOPDIR,
-# fallback to just ULTRA_ABS (rare case)
-ifeq ($(ULTRA_DIR),$(ULTRA_ABS))
-  ULTRA_DIR := $(ULTRA_ABS)
+# Relative path from TOPDIR (fallback to absolute if .mk lies outside TOPDIR).
+RYZ_DIR := $(subst $(TOPDIR)/,,$(RYZ_ABS))
+ifeq ($(RYZ_DIR),$(RYZ_ABS))
+  RYZ_DIR := $(RYZ_ABS)
 endif
 
-
-# Now add folder paths relative to TOPDIR (or absolute if fallback)
 SOURCES += \
-  $(ULTRA_DIR)/common \
-  $(ULTRA_DIR)/libultra/source \
-  $(ULTRA_DIR)/libtesla/source
+  $(RYZ_DIR)/common \
+  $(RYZ_DIR)/libryazha/source \
+  $(RYZ_DIR)/libtesla/source
 
 INCLUDES += \
-  $(ULTRA_DIR)/common \
-  $(ULTRA_DIR)/libultra/include \
-  $(ULTRA_DIR)/libtesla/include
+  $(RYZ_DIR)/common \
+  $(RYZ_DIR)/libryazha/include \
+  $(RYZ_DIR)/libtesla/include
