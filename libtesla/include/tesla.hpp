@@ -242,16 +242,22 @@ inline std::atomic<bool> triggerRumbleClick{false};
 inline std::atomic<bool> triggerRumbleDoubleClick{false};
 
 
+// soundEnabled = false означает что у пользователя выключен конкретный
+// per-event звук (см. ult::useNavigationSound и т.д.). Rumble всё равно
+// дёргается -- у него отдельный master useHapticFeedback на уровне
+// playback'а в poller'е.
 __attribute__((noinline)) static void triggerFeedbackImpl(
-        std::atomic<bool>& rumble, std::atomic<bool>& sound) {
+        std::atomic<bool>& rumble, std::atomic<bool>& sound,
+        bool soundEnabled = true) {
     rumble.store(true, std::memory_order_release);
-    sound.store(true, std::memory_order_release);
+    if (soundEnabled)
+        sound.store(true, std::memory_order_release);
     signalFeedback();
 }
-inline void triggerNavigationFeedback()                   { triggerFeedbackImpl(triggerRumbleClick, triggerNavigationSound); }
-inline void triggerWallFeedback(bool doubleClick = false) { triggerFeedbackImpl(!doubleClick ? triggerRumbleClick : triggerRumbleDoubleClick, triggerWallSound); }
-inline void triggerEnterFeedback()                        { triggerFeedbackImpl(triggerRumbleClick, triggerEnterSound); }
-inline void triggerExitFeedback()                         { triggerFeedbackImpl(triggerRumbleDoubleClick, triggerExitSound); }
+inline void triggerNavigationFeedback()                   { triggerFeedbackImpl(triggerRumbleClick, triggerNavigationSound, ult::useNavigationSound); }
+inline void triggerWallFeedback(bool doubleClick = false) { triggerFeedbackImpl(!doubleClick ? triggerRumbleClick : triggerRumbleDoubleClick, triggerWallSound, ult::useWallSound); }
+inline void triggerEnterFeedback()                        { triggerFeedbackImpl(triggerRumbleClick, triggerEnterSound, ult::useEnterSound); }
+inline void triggerExitFeedback()                         { triggerFeedbackImpl(triggerRumbleDoubleClick, triggerExitSound, ult::useExitSound); }
 inline void triggerOnFeedback()                           { triggerFeedbackImpl(triggerRumbleClick, triggerOnSound); }
 inline void triggerOffFeedback(bool doubleClick = false)  { triggerFeedbackImpl(!doubleClick ? triggerRumbleClick : triggerRumbleDoubleClick, triggerOffSound); }
 inline void triggerSettingsFeedback()                     { triggerFeedbackImpl(triggerRumbleClick, triggerSettingsSound); }
