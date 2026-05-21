@@ -224,6 +224,13 @@ namespace ult {
     bool useStartupNotification = true;
     bool silenceNotifications = false;
     bool useSoundEffects = true;
+
+    // Per-event sound toggles -- все по умолчанию true, чтобы апгрейд
+    // libryazhahand не выключал звуки у тех, у кого они работали.
+    bool useNavigationSound = true;
+    bool useEnterSound      = true;
+    bool useExitSound       = true;
+    bool useWallSound       = true;
     bool useHapticFeedback = false;
     bool useAutoNTPSync = true;
     bool usePageSwap = false;

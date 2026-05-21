@@ -123,6 +123,15 @@ namespace ult {
     extern bool useStartupNotification;
     extern bool silenceNotifications;
     extern bool useSoundEffects;
+
+    // Per-event sound toggles. Раньше был только общий useSoundEffects --
+    // "всё или ничего". Эти флаги позволяют гасить отдельные категории
+    // звуков. Все по умолчанию = true; downstream-overlay'и подключают
+    // их к UI как угодно.
+    extern bool useNavigationSound;
+    extern bool useEnterSound;
+    extern bool useExitSound;
+    extern bool useWallSound;
     extern bool useHapticFeedback;
     extern bool useAutoNTPSync;
     extern bool usePageSwap;
