@@ -231,6 +231,10 @@ namespace ult {
     bool useEnterSound      = true;
     bool useExitSound       = true;
     bool useWallSound       = true;
+
+    // PR #309 backport: 4 сек -- то самое значение, что было захардкожено
+    // в processHold до этого PR. Overlay-side читает на каждом frame.
+    u64 holdDurationMs = 4000;
     bool useHapticFeedback = false;
     bool useAutoNTPSync = true;
     bool usePageSwap = false;

@@ -132,6 +132,13 @@ namespace ult {
     extern bool useEnterSound;
     extern bool useExitSound;
     extern bool useWallSound;
+
+    // PR #309 backport: настраиваемая длительность hold-press для confirm
+    // действий. processHold в overlay-main делит elapsed на это
+    // значение, чтобы получить процент прогресса. Default 4000 = 4 сек
+    // (как было захардкожено раньше). Диапазон 500-5000 мс задаётся в
+    // UI overlay'я (Settings -> Input -> Hold Time).
+    extern u64 holdDurationMs;
     extern bool useHapticFeedback;
     extern bool useAutoNTPSync;
     extern bool usePageSwap;
