@@ -71,6 +71,11 @@ EXCLUDED_PATHS = {
     "example/source/main.cpp",
     # Our libryazha/README.md is hand-translated.
     "libultra/README.md",
+    # tesla.hpp upstream uses a GNU statement-expression macro
+    # (`#define TSL_R_TRY(...) ({ ... })`) that GCC 15 in the devkitpro
+    # CI container refuses to parse. We keep our do/while(0) rewrite.
+    # If upstream eventually moves off the GNU extension, drop this entry.
+    "libtesla/include/tesla.hpp",
 }
 
 
