@@ -10490,7 +10490,24 @@ namespace tsl {
                 }
             
             virtual ~NamedStepTrackBarV2() {}
-                        
+
+            // FIX: NamedStepTrackBarV2 всегда работает в диапазоне [0..N-1]
+            // (m_minValue=0, m_maxValue=N-1). Базовый StepTrackBarV2::setProgress
+            // уходит в legacy 0..100 ветку, когда m_simpleCallback ещё не назначен:
+            //   m_value = value * (100 / (numSteps-1))
+            // что для нашего диапазона даёт значения в разы больше maxValue.
+            // Из-за этого ползунок визуально съезжает вправо после re-entry.
+            // Всегда используем index-based математику.
+            virtual void setProgress(u8 value) override {
+                value = std::min(value, u8(this->m_numSteps - 1));
+                this->m_index = value;
+                this->m_value = value;
+                if (!m_stepDescriptions.empty()) {
+                    this->m_selection = m_stepDescriptions[m_index];
+                    this->currentDescIndex = m_index;
+                }
+            }
+
             virtual void draw(gfx::Renderer *renderer) override {
                 // Cache frequently used values
                 const u16 trackBarWidth = this->getWidth() - 95;
