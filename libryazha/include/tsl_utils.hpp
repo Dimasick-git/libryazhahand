@@ -674,7 +674,7 @@ namespace ult {
     void reinitializeWidgetVars();
     #endif
     
-    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibultrahandTitles, useLibultrahandVersions, usePackageTitles, usePackageVersions;
+    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibryazhahandTitles, useLibryazhahandVersions, usePackageTitles, usePackageVersions;
     
 
 

@@ -1247,7 +1247,7 @@ namespace ult {
     }
     #endif
     
-    bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibultrahandTitles, useLibultrahandVersions, usePackageTitles, usePackageVersions;
+    bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibryazhahandTitles, useLibryazhahandVersions, usePackageTitles, usePackageVersions;
     
 
 
