@@ -100,16 +100,21 @@ namespace ult {
         static uint32_t       m_playBufCap;
         static AudioOutBuffer m_audoutBuf;
 
+        // Audio читает WAV'ы из ".loaded_sounds/" -- сюда оверлей
+        // распаковывает выбранный ZIP-пак из видимой /config/ryazhahand/sounds/.
+        // Шарится между всеми оверлеями на libryazhahand через одну папку.
+        // Раньше пути указывали на /config/ultrahand/sounds/ что конфликтовало
+        // с ProjectName=ryazhahand и приводило к "тихим" sound_effects.
         inline static constexpr const char* m_soundPaths[static_cast<size_t>(SoundType::Count)] = {
-            "sdmc:/config/ultrahand/sounds/tick.wav",
-            "sdmc:/config/ultrahand/sounds/enter.wav",
-            "sdmc:/config/ultrahand/sounds/exit.wav",
-            "sdmc:/config/ultrahand/sounds/wall.wav",
-            "sdmc:/config/ultrahand/sounds/on.wav",
-            "sdmc:/config/ultrahand/sounds/off.wav",
-            "sdmc:/config/ultrahand/sounds/settings.wav",
-            "sdmc:/config/ultrahand/sounds/move.wav",
-            "sdmc:/config/ultrahand/sounds/notification.wav"
+            "sdmc:/config/ryazhahand/.loaded_sounds/tick.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/enter.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/exit.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/wall.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/on.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/off.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/settings.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/move.wav",
+            "sdmc:/config/ryazhahand/.loaded_sounds/notification.wav"
         };
 
         // Loads WAV into rawBuf (16-bit, native channels, no volume applied).

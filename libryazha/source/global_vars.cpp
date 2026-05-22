@@ -22,7 +22,13 @@ namespace ult {
 
     // Base paths
     const std::string ROOT_PATH          = "sdmc:/";
-    const std::string BASE_CONFIG_PATH   = ROOT_PATH + "config/ultrahand/";
+    // Все assets (themes/sounds/lang/notifications/wallpapers) живут здесь
+    // и шарятся между Ryzhand-Overlay, Ryazha-CLK, RyazhaTune и т.д. -- все
+    // оверлеи на libryazhahand видят одну общую папку config.
+    // Раньше было "config/ultrahand/" -- осталось от исходного libultrahand,
+    // а ProjectName уже был ryazhahand, что приводило к рассинхрону путей
+    // (юзер кладёт темы в /config/ryazhahand/themes, а либа ищет в ultrahand).
+    const std::string BASE_CONFIG_PATH   = ROOT_PATH + "config/ryazhahand/";
     const std::string TESLA_CONFIG_PATH  = ROOT_PATH + "config/tesla/";
     const std::string SWITCH_PATH        = ROOT_PATH + "switch/";
 
@@ -58,8 +64,13 @@ namespace ult {
     const std::string THEMES_PATH                 = BASE_CONFIG_PATH + "themes/";
     const std::string WALLPAPERS_PATH             = BASE_CONFIG_PATH + "wallpapers/";
     const std::string ASSETS_PATH                 = BASE_CONFIG_PATH + "assets/";
-    const std::string SOUNDS_PATH                 = BASE_CONFIG_PATH + ".sounds/";
-    const std::string LOADED_SOUNDS_PATH          = BASE_CONFIG_PATH + "sounds/";
+    // Swap visible/hidden vs upstream libultrahand:
+    //   sounds/         -- visible ZIP-паки (юзер видит и кладёт зипки)
+    //   .loaded_sounds/ -- hidden, активный распакованный пак (Audio читает отсюда)
+    // Так юзеру проще найти куда класть звуки, а .loaded_sounds/ управляется
+    // оверлеем (clear + unzip при выборе пака).
+    const std::string SOUNDS_PATH                 = BASE_CONFIG_PATH + "sounds/";
+    const std::string LOADED_SOUNDS_PATH          = BASE_CONFIG_PATH + ".loaded_sounds/";
     const std::string FLAGS_PATH                  = BASE_CONFIG_PATH + "flags/";
     const std::string NOTIFICATIONS_PATH          = BASE_CONFIG_PATH + "notifications/";
     const std::string NOTIFICATIONS_ICONS_PATH    = ASSETS_PATH + "notifications/";
