@@ -5735,6 +5735,15 @@ namespace tsl {
         //static std::atomic<bool> s_swapPending{false};
         static std::atomic<bool> skipOnce{false};
 
+        // Lock + flag для безопасного swap'а List items между фреймами.
+        // Используется в overlay'ях когда нужно подменить контент списка
+        // не из render-thread'а (например с handleInput при загрузке
+        // нового пакета). Backported из vendored Ryzhand-Overlay.
+        // inline (C++17) -- одна общая копия между всеми TU's, включая
+        // libtesla/source/tesla.cpp и main.cpp оверлея.
+        inline std::mutex s_safeToSwapMutex;
+        inline std::atomic<bool> s_safeToSwap{false};
+
         static std::atomic<bool> isTableScrolling{false};
 
         class List : public Element {

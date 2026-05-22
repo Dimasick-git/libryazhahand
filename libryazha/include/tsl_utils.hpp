@@ -108,11 +108,8 @@ namespace ult {
     extern std::atomic<bool> internalTouchReleased;
     extern u32 layerEdge;
 
-    // Long-press duration (in ms) used by ToggleListItem and other hold-to-confirm
-    // widgets. Configurable from the launcher's Input settings. 500..10000 are
-    // the recommended bounds; default 3000 matches the historical hard-coded value.
-    // (Backport of ppkantorski/libultrahand#16.)
-    extern u32 holdDurationMs;
+    // (Объявление holdDurationMs переехало ниже -- u64, с PR #309 backport.
+    // Старая u32-версия удалена; conflict с дубликатом ломал сборку.)
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
     extern bool useLaunchCombos;
@@ -370,7 +367,7 @@ namespace ult {
     extern std::string LANGUAGE;
     extern std::string OVERLAY_INFO;
     extern std::string SOFTWARE_UPDATE;
-    extern std::string UPDATE_ULTRAHAND;
+    extern std::string UPDATE_RYZHAND;
     extern std::string SYSTEM;
     extern std::string DEVICE_INFO;
     extern std::string FIRMWARE;
@@ -443,9 +440,25 @@ namespace ult {
     extern std::string SELECTION_BACKGROUND;
     extern std::string SELECTION_TEXT;
     extern std::string SELECTION_VALUE;
-    extern std::string LIBULTRAHAND_TITLES;
-    extern std::string LIBULTRAHAND_VERSIONS;
+    extern std::string LIBRYZHAND_TITLES;
+    extern std::string LIBRYZHAND_VERSIONS;
     extern std::string PACKAGE_TITLES;
+
+    // Backported из vendored Ryzhand-Overlay -- TXT-читалка + UI-настройки
+    // которые добавлялись там и были недоступны в base libryazhahand.
+    extern std::string TXT_READER;
+    extern std::string NO_TXT_FILES_FOUND;
+    extern std::string TEXT_COLOR;
+    extern std::string TEXT_COLOR_PICKER_HINT;
+    extern std::string UPDATE_LANGUAGES;
+    extern std::string EXTERNAL_NOTIFICATIONS;
+    extern std::string STAIRCASE_EFFECT;
+    extern std::string SOUND_EFFECTS;
+    extern std::string SOUND_NAVIGATION;
+    extern std::string SOUND_ENTER;
+    extern std::string SOUND_EXIT;
+    extern std::string SOUND_WALL;
+    extern std::string USERGUIDE_OFFSET;
 
     extern std::string RYZHAND_HAS_STARTED;
     extern std::string RYZHAND_HAS_RESTARTED;
@@ -571,6 +584,19 @@ namespace ult {
     
     
     extern std::atomic<bool> themeIsInitialized;
+
+    // ───── Default theme settings ─────────────────────────────────────
+    // Канонический набор всех theme-keys с дефолтными цветами. Используется
+    // overlay'ями для init темы при первом запуске (initializeTheme).
+    // Backported из vendored Ryzhand-Overlay.
+    extern std::map<const std::string, std::string> defaultThemeSettingsMap;
+
+    // ───── Wallpaper color-filter API ─────────────────────────────────
+    // 0=none, 1=red, 2=green, 3=blue, 4=sepia, 5=invert.
+    extern std::atomic<int> wallpaperColorFilter;
+    void nextWallpaperFilter();
+    void setWallpaperFilter(int filterType);
+    void loadWallpaperFilterSettings();
 
     // Variables for touch commands
     extern std::atomic<bool> touchingBack;

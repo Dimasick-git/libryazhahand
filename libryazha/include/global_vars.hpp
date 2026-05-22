@@ -43,6 +43,8 @@ namespace ult {
     extern const std::string OVL_HEAP_CONFIG_PATH;
     extern const std::string OVL_EXIT_FLAG_PATH;
     extern const std::string OVL_RELOAD_FLAG_PATH;
+    // URL для legacy fallback-обновления nx-ovlloader через overlay launcher.
+    extern const std::string OLD_NX_OVLLOADER_ZIP_URL;
 
     extern const std::string RYZHAND_CONFIG_INI_PATH;
     extern const std::string TESLA_CONFIG_INI_PATH;

@@ -36,6 +36,8 @@ namespace ult {
     const std::string OVL_HEAP_CONFIG_PATH = NX_OVLLOADER_PATH + "heap_size.bin";
     const std::string OVL_EXIT_FLAG_PATH = NX_OVLLOADER_PATH + "exit_flag.bin";
     const std::string OVL_RELOAD_FLAG_PATH = NX_OVLLOADER_PATH + "reload_flag.bin";
+    const std::string OLD_NX_OVLLOADER_ZIP_URL
+        = "https://github.com/ppkantorski/nx-ovlloader/releases/download/v1.0.8/nx-ovlloader.zip";
     
     // Filenames
     CONSTEXPR_STRING std::string CONFIG_FILENAME       = "config.ini";

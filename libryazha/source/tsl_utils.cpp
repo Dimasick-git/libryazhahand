@@ -209,11 +209,8 @@ namespace ult {
 
     u32 layerEdge = 0;
 
-    // libultrahand#16: configurable long-press duration. Default 3000 ms keeps
-    // the legacy hard-coded behavior; a launcher UI can persist a new value to
-    // its config.ini and update this at runtime.
-    u32 holdDurationMs = 3000;
-
+    // (Старое u32 holdDurationMs = 3000 удалено. Используем u64-версию ниже
+    // от PR #309 backport. Дубль ломал сборку.)
     bool useRightAlignment = false;
     bool useSwipeToOpen = true;
     bool useLaunchCombos = true;
@@ -453,7 +450,7 @@ namespace ult {
     std::string LANGUAGE;
     std::string OVERLAY_INFO;
     std::string SOFTWARE_UPDATE;
-    std::string UPDATE_ULTRAHAND;
+    std::string UPDATE_RYZHAND;
     std::string SYSTEM;
     std::string DEVICE_INFO;
     std::string FIRMWARE;
@@ -520,9 +517,24 @@ namespace ult {
     std::string SELECTION_BACKGROUND;
     std::string SELECTION_TEXT;
     std::string SELECTION_VALUE;
-    std::string LIBULTRAHAND_TITLES;
-    std::string LIBULTRAHAND_VERSIONS;
+    std::string LIBRYZHAND_TITLES;
+    std::string LIBRYZHAND_VERSIONS;
     std::string PACKAGE_TITLES;
+
+    // Backported из vendored Ryzhand-Overlay.
+    std::string TXT_READER;
+    std::string NO_TXT_FILES_FOUND;
+    std::string TEXT_COLOR;
+    std::string TEXT_COLOR_PICKER_HINT;
+    std::string UPDATE_LANGUAGES;
+    std::string EXTERNAL_NOTIFICATIONS;
+    std::string STAIRCASE_EFFECT;
+    std::string SOUND_EFFECTS;
+    std::string SOUND_NAVIGATION;
+    std::string SOUND_ENTER;
+    std::string SOUND_EXIT;
+    std::string SOUND_WALL;
+    std::string USERGUIDE_OFFSET;
     std::string RYZHAND_HAS_STARTED;
     std::string RYZHAND_HAS_RESTARTED;
     std::string NEW_UPDATE_IS_AVAILABLE;
@@ -670,7 +682,7 @@ namespace ult {
         {&LANGUAGE,                   "LANGUAGE",                   "Language"},
         {&OVERLAY_INFO,               "OVERLAY_INFO",               "Overlay Info"},
         {&SOFTWARE_UPDATE,            "SOFTWARE_UPDATE",            "Software Update"},
-        {&UPDATE_ULTRAHAND,           "UPDATE_ULTRAHAND",           "Update Ultrahand"},
+        {&UPDATE_RYZHAND,           "UPDATE_RYZHAND",           "Update Ryzhand"},
         {&SYSTEM,                     "SYSTEM",                     "System"},
         {&DEVICE_INFO,                "DEVICE_INFO",                "Device Info"},
         {&FIRMWARE,                   "FIRMWARE",                   "Firmware"},
@@ -736,8 +748,22 @@ namespace ult {
         {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
         {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
         {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
-        {&LIBULTRAHAND_TITLES,        "LIBULTRAHAND_TITLES",        "libultrahand Titles"},
-        {&LIBULTRAHAND_VERSIONS,      "LIBULTRAHAND_VERSIONS",      "libultrahand Versions"},
+        {&LIBRYZHAND_TITLES,        "LIBRYZHAND_TITLES",        "libryazhahand Titles"},
+        {&LIBRYZHAND_VERSIONS,      "LIBRYZHAND_VERSIONS",      "libryazhahand Versions"},
+        // Backports из vendored Ryzhand-Overlay.
+        {&TXT_READER,                 "TXT_READER",                 "TXT Reader"},
+        {&NO_TXT_FILES_FOUND,         "NO_TXT_FILES_FOUND",         "No TXT files found"},
+        {&TEXT_COLOR,                 "TEXT_COLOR",                 "Text Color"},
+        {&TEXT_COLOR_PICKER_HINT,     "TEXT_COLOR_PICKER_HINT",     "Left/Right: channel  Up/Down: +/-1  L/R: +/-10  A: Save  B: Back"},
+        {&UPDATE_LANGUAGES,           "UPDATE_LANGUAGES",           "Update Languages"},
+        {&EXTERNAL_NOTIFICATIONS,     "EXTERNAL_NOTIFICATIONS",     "External Notifications"},
+        {&STAIRCASE_EFFECT,           "STAIRCASE_EFFECT",           "Staircase Effect"},
+        {&SOUND_EFFECTS,              "SOUND_EFFECTS",              "Sound Effects"},
+        {&SOUND_NAVIGATION,           "SOUND_NAVIGATION",           "Navigation sound"},
+        {&SOUND_ENTER,                "SOUND_ENTER",                "Confirm sound"},
+        {&SOUND_EXIT,                 "SOUND_EXIT",                 "Cancel sound"},
+        {&SOUND_WALL,                 "SOUND_WALL",                 "Wall sound"},
+        {&USERGUIDE_OFFSET,           "USERGUIDE_OFFSET",           "177"},
         {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
         {&RYZHAND_HAS_STARTED,      "RYZHAND_HAS_STARTED",      "Ultrahand has started."},
         {&RYZHAND_HAS_RESTARTED,    "RYZHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
@@ -1358,6 +1384,78 @@ namespace ult {
     bool expandedMemory = false;
     bool furtherExpandedMemory = false;
     bool limitedMemory = false;
+
+    // ───── Default theme settings ─────────────────────────────────────
+    // Backported из vendored Ryzhand-Overlay -- набор дефолтных цветов
+    // темы, который overlay-launcher применяет при init темы.
+    std::map<const std::string, std::string> defaultThemeSettingsMap = {
+        {"default_overlay_color", whiteColor},
+        {"default_package_color", whiteColor},
+        {"default_script_color", "FF33FF"},
+        {"clock_color", whiteColor},
+        {"temperature_color", whiteColor},
+        {"battery_color", "ffff45"},
+        {"battery_charging_color", "00FF00"},
+        {"battery_low_color", "FF0000"},
+        {"widget_backdrop_alpha", "15"},
+        {"widget_backdrop_color", blackColor},
+        {"bg_alpha", "13"},
+        {"bg_color", blackColor},
+        {"separator_alpha", "15"},
+        {"separator_color", "404040"},
+        {"text_separator_color", "404040"},
+        {"text_color", whiteColor},
+        {"notification_text_color", whiteColor},
+        {"header_text_color", whiteColor},
+        {"header_separator_color", whiteColor},
+        {"star_color", whiteColor},
+        {"selection_star_color", whiteColor},
+        {"bottom_button_color", whiteColor},
+        {"bottom_text_color", whiteColor},
+        {"bottom_separator_color", whiteColor},
+        {"top_separator_color", "404040"},
+        {"table_bg_color", "2C2C2C"},
+        {"table_bg_alpha", "14"},
+        {"table_section_text_color", whiteColor},
+        {"table_info_text_color", "9ed0ff"},
+        {"warning_text_color", "FF7777"},
+        {"healthy_ram_text_color", "00FF00"},
+        {"neutral_ram_text_color", "FFAA00"},
+        {"bad_ram_text_color", "FF0000"},
+        {"trackbar_slider_color", "606060"},
+        {"trackbar_slider_border_color", "505050"},
+        {"trackbar_slider_malleable_color", "A0A0A0"},
+        {"dynamic_logo_color_1", "00E669"},
+        {"dynamic_logo_color_2", "8080EA"}
+    };
+
+    // ───── Wallpaper color filter state + helpers ──────────────────────
+    std::atomic<int> wallpaperColorFilter(0);   // 0=none, 1=red, 2=green, 3=blue, 4=sepia, 5=invert
+
+    void nextWallpaperFilter() {
+        int current = wallpaperColorFilter.load();
+        wallpaperColorFilter.store((current + 1) % 6);
+    }
+
+    void setWallpaperFilter(int filterType) {
+        if (filterType >= 0 && filterType <= 5) {
+            wallpaperColorFilter.store(filterType);
+        }
+    }
+
+    void loadWallpaperFilterSettings() {
+        // Читаем 0..5 из config.ini, валидируем. Невалидное / отсутствующее
+        // значение оставляет filter = 0.
+        std::string filterStr = parseValueFromIniSection(
+            RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME, "wallpaper_color_filter");
+        if (filterStr.empty()) return;
+        int filter = 0;
+        for (char c : filterStr) {
+            if (c < '0' || c > '9') return;
+            filter = filter * 10 + (c - '0');
+        }
+        if (filter >= 0 && filter <= 5) wallpaperColorFilter.store(filter);
+    }
     
     std::string versionLabel;
     
