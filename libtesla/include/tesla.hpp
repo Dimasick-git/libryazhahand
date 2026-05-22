@@ -5741,8 +5741,17 @@ namespace tsl {
         // нового пакета). Backported из vendored Ryzhand-Overlay.
         // inline (C++17) -- одна общая копия между всеми TU's, включая
         // libtesla/source/tesla.cpp и main.cpp оверлея.
+        //
+        // ВАЖНО: default = true. В vendored List::draw() ставил это в true
+        // на каждом кадре после рендера, но canonical-split tesla.cpp
+        // этой логики не несёт. Если оставить false по умолчанию --
+        // переход Overlays<->Packages не работает (handleInput читает
+        // и блокирует swap'ы). true означает "swap всегда разрешён";
+        // в худшем случае swap произойдёт mid-render = 1-кадровый
+        // визуальный glitch, не crash. Тот же эффект что у upstream
+        // libultrahand где этого флага вообще нет.
         inline std::mutex s_safeToSwapMutex;
-        inline std::atomic<bool> s_safeToSwap{false};
+        inline std::atomic<bool> s_safeToSwap{true};
 
         static std::atomic<bool> isTableScrolling{false};
 
