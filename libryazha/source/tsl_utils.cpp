@@ -463,7 +463,7 @@ namespace ult {
     std::string OVERLAY_MEMORY;
     std::string NOT_ENOUGH_MEMORY;
     std::string WALLPAPER_SUPPORT_DISABLED;
-    //std::string SOUND_SUPPORT_DISABLED;
+    std::string SOUND_SUPPORT_DISABLED;
     std::string WALLPAPER_SUPPORT_ENABLED;
     std::string SOUND_SUPPORT_ENABLED;
     std::string EXIT_OVERLAY_SYSTEM;
@@ -695,7 +695,7 @@ namespace ult {
         {&OVERLAY_MEMORY,             "OVERLAY_MEMORY",             "Overlay Memory"},
         {&NOT_ENOUGH_MEMORY,          "NOT_ENOUGH_MEMORY",          "Not enough memory."},
         {&WALLPAPER_SUPPORT_DISABLED, "WALLPAPER_SUPPORT_DISABLED", "Wallpaper support disabled."},
-        //{&SOUND_SUPPORT_DISABLED,     "SOUND_SUPPORT_DISABLED",     "Sound support disabled."},
+        {&SOUND_SUPPORT_DISABLED,     "SOUND_SUPPORT_DISABLED",     "Sound support disabled."},
         {&WALLPAPER_SUPPORT_ENABLED,  "WALLPAPER_SUPPORT_ENABLED",  "Wallpaper support enabled."},
         {&SOUND_SUPPORT_ENABLED,      "SOUND_SUPPORT_ENABLED",      "Sound support enabled."},
         {&EXIT_OVERLAY_SYSTEM,        "EXIT_OVERLAY_SYSTEM",        "Exit Overlay System"},
