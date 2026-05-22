@@ -470,9 +470,9 @@ namespace ult {
     std::string WALLPAPER_SUPPORT_ENABLED;
     std::string SOUND_SUPPORT_ENABLED;
     std::string EXIT_OVERLAY_SYSTEM;
-    std::string ULTRAHAND_ABOUT;
-    std::string ULTRAHAND_CREDITS_START;
-    std::string ULTRAHAND_CREDITS_END;
+    std::string RYZHAND_ABOUT;
+    std::string RYZHAND_CREDITS_START;
+    std::string RYZHAND_CREDITS_END;
     std::string LOCAL_IP;
     std::string WALLPAPER;
     std::string THEME;
@@ -523,8 +523,8 @@ namespace ult {
     std::string LIBULTRAHAND_TITLES;
     std::string LIBULTRAHAND_VERSIONS;
     std::string PACKAGE_TITLES;
-    std::string ULTRAHAND_HAS_STARTED;
-    std::string ULTRAHAND_HAS_RESTARTED;
+    std::string RYZHAND_HAS_STARTED;
+    std::string RYZHAND_HAS_RESTARTED;
     std::string NEW_UPDATE_IS_AVAILABLE;
     std::string DELETE_PACKAGE;
     std::string DELETE_OVERLAY;
@@ -687,9 +687,9 @@ namespace ult {
         {&WALLPAPER_SUPPORT_ENABLED,  "WALLPAPER_SUPPORT_ENABLED",  "Wallpaper support enabled."},
         {&SOUND_SUPPORT_ENABLED,      "SOUND_SUPPORT_ENABLED",      "Sound support enabled."},
         {&EXIT_OVERLAY_SYSTEM,        "EXIT_OVERLAY_SYSTEM",        "Exit Overlay System"},
-        {&ULTRAHAND_ABOUT,            "ULTRAHAND_ABOUT",            "Ultrahand Overlay is a customizable overlay ecosystem for overlays, commands, hotkeys, and advanced system interaction."},
-        {&ULTRAHAND_CREDITS_START,    "ULTRAHAND_CREDITS_START",    "Special thanks to "},
-        {&ULTRAHAND_CREDITS_END,      "ULTRAHAND_CREDITS_END",      " and many others. ♥"},
+        {&RYZHAND_ABOUT,            "RYZHAND_ABOUT",            "Ultrahand Overlay is a customizable overlay ecosystem for overlays, commands, hotkeys, and advanced system interaction."},
+        {&RYZHAND_CREDITS_START,    "RYZHAND_CREDITS_START",    "Special thanks to "},
+        {&RYZHAND_CREDITS_END,      "RYZHAND_CREDITS_END",      " and many others. ♥"},
         {&LOCAL_IP,                   "LOCAL_IP",                   "Local IP"},
         {&WALLPAPER,                  "WALLPAPER",                  "Wallpaper"},
         {&THEME,                      "THEME",                      "Theme"},
@@ -739,8 +739,8 @@ namespace ult {
         {&LIBULTRAHAND_TITLES,        "LIBULTRAHAND_TITLES",        "libultrahand Titles"},
         {&LIBULTRAHAND_VERSIONS,      "LIBULTRAHAND_VERSIONS",      "libultrahand Versions"},
         {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
-        {&ULTRAHAND_HAS_STARTED,      "ULTRAHAND_HAS_STARTED",      "Ultrahand has started."},
-        {&ULTRAHAND_HAS_RESTARTED,    "ULTRAHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
+        {&RYZHAND_HAS_STARTED,      "RYZHAND_HAS_STARTED",      "Ultrahand has started."},
+        {&RYZHAND_HAS_RESTARTED,    "RYZHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
         {&NEW_UPDATE_IS_AVAILABLE,    "NEW_UPDATE_IS_AVAILABLE",    "New update is available!"},
         {&DELETE_PACKAGE,             "DELETE_PACKAGE",             "Delete Package"},
         {&DELETE_OVERLAY,             "DELETE_OVERLAY",             "Delete Overlay"},
@@ -1207,7 +1207,7 @@ namespace ult {
     #if IS_LAUNCHER_DIRECTIVE
     void reinitializeWidgetVars() {
         // Load INI data once instead of 8 separate file reads
-        auto ultrahandSection = getKeyValuePairsFromSection(ULTRAHAND_CONFIG_INI_PATH, ULTRAHAND_PROJECT_NAME);
+        auto ultrahandSection = getKeyValuePairsFromSection(RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME);
         
         hideClock             = getBoolFromSection(ultrahandSection, "hide_clock",               false);
         hideBattery           = getBoolFromSection(ultrahandSection, "hide_battery",             true);
@@ -1364,7 +1364,7 @@ namespace ult {
     #if IS_LAUNCHER_DIRECTIVE
     void reinitializeVersionLabels() {
         // Load INI data once instead of 6 separate file reads
-        auto ultrahandSection = getKeyValuePairsFromSection(ULTRAHAND_CONFIG_INI_PATH, ULTRAHAND_PROJECT_NAME);
+        auto ultrahandSection = getKeyValuePairsFromSection(RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME);
         
         cleanVersionLabels  = getBoolFromSection(ultrahandSection, "clean_version_labels",  false);
         hideOverlayVersions = getBoolFromSection(ultrahandSection, "hide_overlay_versions", false);

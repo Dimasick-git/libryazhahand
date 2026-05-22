@@ -33,8 +33,8 @@
 namespace ult {
     extern const std::string CONFIG_FILENAME;
 
-    extern const std::string ULTRAHAND_PROJECT_NAME;
-    extern const std::string CAPITAL_ULTRAHAND_PROJECT_NAME;
+    extern const std::string RYZHAND_PROJECT_NAME;
+    extern const std::string CAPITAL_RYZHAND_PROJECT_NAME;
     
     extern const std::string ROOT_PATH;
     extern const std::string SETTINGS_PATH;
@@ -44,7 +44,7 @@ namespace ult {
     extern const std::string OVL_EXIT_FLAG_PATH;
     extern const std::string OVL_RELOAD_FLAG_PATH;
 
-    extern const std::string ULTRAHAND_CONFIG_INI_PATH;
+    extern const std::string RYZHAND_CONFIG_INI_PATH;
     extern const std::string TESLA_CONFIG_INI_PATH;
     extern const std::string LANG_PATH;
     extern const std::string THEMES_PATH;
@@ -84,7 +84,7 @@ namespace ult {
 
     extern const std::set<std::string> PROTECTED_FILES;
 
-    extern const std::string ULTRAHAND_REPO_URL;
+    extern const std::string RYZHAND_REPO_URL;
     extern const std::string INCLUDED_THEME_FOLDER_URL;
     extern const std::string LATEST_RELEASE_INFO_URL;
     extern const std::string LATEST_UPDATER_INI_URL;
@@ -98,7 +98,7 @@ namespace ult {
     extern const std::string USE_LOGGING_STR;
 
     extern const std::string TESLA_COMBO_STR;
-    extern const std::string ULTRAHAND_COMBO_STR;
+    extern const std::string RYZHAND_COMBO_STR;
     
     extern const std::string FUSE_STR;
     extern const std::string TESLA_STR;

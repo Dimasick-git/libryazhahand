@@ -9,20 +9,20 @@ C++-заголовков для разработки Tesla-overlay'ев под N
 Подключение через единый заголовок:
 
 ```cpp
-#include <ultra.hpp>
+#include <ryz.hpp>
 ```
 
-(имя файла оставлено как у upstream ради бинарной совместимости;
-namespace `ult::` тоже сохранён)
+(namespace `ult::` сохранён ради бинарной совместимости с upstream
+libultrahand -- упрощает cherry-pick патчей через sync_from_upstream.py)
 
 ---
 
 ## Состав
 
-### `ultra.hpp`
+### `ryz.hpp`
 Корневой include, подтягивающий все остальные заголовки libryazha
-одним подключением. Поддерживает директивы `ULTRA_TARGETED_SPEED` и
-`ULTRA_TARGETED_SIZE` для покомпонентной оптимизации.
+одним подключением. Поддерживает директивы `RYZ_TARGETED_SPEED` и
+`RYZ_TARGETED_SIZE` для покомпонентной оптимизации.
 
 ### `global_vars.hpp`
 Глобальные константы, общие пути, атомарные переменные состояния.

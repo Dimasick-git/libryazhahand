@@ -25,7 +25,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <ultra.hpp>
+#include <ryz.hpp>
 #include <switch.h>
 #include <arm_neon.h>
 
@@ -389,9 +389,9 @@ namespace ult {
     extern std::string SOUND_SUPPORT_ENABLED;
     extern std::string EXIT_OVERLAY_SYSTEM;
 
-    extern std::string ULTRAHAND_ABOUT;
-    extern std::string ULTRAHAND_CREDITS_START;
-    extern std::string ULTRAHAND_CREDITS_END;
+    extern std::string RYZHAND_ABOUT;
+    extern std::string RYZHAND_CREDITS_START;
+    extern std::string RYZHAND_CREDITS_END;
 
     extern std::string LOCAL_IP;
     extern std::string WALLPAPER;
@@ -447,8 +447,8 @@ namespace ult {
     extern std::string LIBULTRAHAND_VERSIONS;
     extern std::string PACKAGE_TITLES;
 
-    extern std::string ULTRAHAND_HAS_STARTED;
-    extern std::string ULTRAHAND_HAS_RESTARTED;
+    extern std::string RYZHAND_HAS_STARTED;
+    extern std::string RYZHAND_HAS_RESTARTED;
     extern std::string NEW_UPDATE_IS_AVAILABLE;
 
     extern std::string DELETE_PACKAGE;

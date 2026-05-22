@@ -1,8 +1,8 @@
 /********************************************************************************
- * File: ultra.hpp
- * Author: ppkantorski
- * Description: 
- *   'ultra.hpp' serves as a central include header for the Ultrahand Overlay project,
+ * File: ryz.hpp
+ * Author: ppkantorski (libultrahand), Dimasick-git (libryazhahand fork)
+ * Description:
+ *   'ryz.hpp' serves as a central include header for the Ryzhand Overlay project,
  *   bringing together a comprehensive suite of utility functions essential for the
  *   development and operation of custom overlays on the Nintendo Switch. This header
  *   provides consolidated access to functions facilitating debugging, string processing,
@@ -31,24 +31,24 @@
 //
 
 // ── Ultra targeted optimizations ─────────────────────────────
-//#ifdef ULTRA_TARGETED_SPEED
-//    #define ULTRA_OPT_SPEED_PUSH _Pragma("GCC push_options") _Pragma("GCC optimize(\"O3\")")
-//    #define ULTRA_OPT_SPEED_POP  _Pragma("GCC pop_options")
+//#ifdef RYZ_TARGETED_SPEED
+//    #define RYZ_OPT_SPEED_PUSH _Pragma("GCC push_options") _Pragma("GCC optimize(\"O3\")")
+//    #define RYZ_OPT_SPEED_POP  _Pragma("GCC pop_options")
 //#else
-//    #define ULTRA_OPT_SPEED_PUSH
-//    #define ULTRA_OPT_SPEED_POP
+//    #define RYZ_OPT_SPEED_PUSH
+//    #define RYZ_OPT_SPEED_POP
 //#endif
 
-#ifdef ULTRA_TARGETED_SIZE
-    #define ULTRA_OPT_SIZE_PUSH _Pragma("GCC push_options") _Pragma("GCC optimize(\"Os\")")
-    #define ULTRA_OPT_SIZE_POP  _Pragma("GCC pop_options")
+#ifdef RYZ_TARGETED_SIZE
+    #define RYZ_OPT_SIZE_PUSH _Pragma("GCC push_options") _Pragma("GCC optimize(\"Os\")")
+    #define RYZ_OPT_SIZE_POP  _Pragma("GCC pop_options")
 #else
-    #define ULTRA_OPT_SIZE_PUSH
-    #define ULTRA_OPT_SIZE_POP
+    #define RYZ_OPT_SIZE_PUSH
+    #define RYZ_OPT_SIZE_POP
 #endif
 
 // Include all functional headers used in the libUltra library
-ULTRA_OPT_SIZE_PUSH
+RYZ_OPT_SIZE_PUSH
 #include "global_vars.hpp"
 #include "debug_funcs.hpp"
 #include "string_funcs.hpp"
@@ -62,7 +62,7 @@ ULTRA_OPT_SIZE_PUSH
 #include "mod_funcs.hpp"
 #include "audio.hpp"
 #include "haptics.hpp"
-ULTRA_OPT_SIZE_POP
+RYZ_OPT_SIZE_POP
 
 #include "tsl_utils.hpp"
 

@@ -62,7 +62,7 @@
 //#endif
 
 
-#include <ultra.hpp>
+#include <ryz.hpp>
 #include <switch.h>
 #include <arm_neon.h>
 
@@ -3886,7 +3886,7 @@ namespace tsl {
                 // Get the underscan pixel values for both horizontal and vertical borders
                 const auto [horizontalUnderscanPixels, verticalUnderscanPixels] = getUnderscanPixels();
                 
-                ult::useRightAlignment = (ult::parseValueFromIniSection(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, "right_alignment") == ult::TRUE_STR);
+                ult::useRightAlignment = (ult::parseValueFromIniSection(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, "right_alignment") == ult::TRUE_STR);
 
                 cfg::LayerPosX = 0;
                 cfg::LayerPosY = 0;
@@ -4994,7 +4994,7 @@ namespace tsl {
                 if (m_noClickableItems != ult::noClickableItems.load(std::memory_order_acquire))
                     ult::noClickableItems.store(m_noClickableItems, std::memory_order_release);
             
-                const bool renderIsUltrahandMenu = (m_title == ult::CAPITAL_ULTRAHAND_PROJECT_NAME && 
+                const bool renderIsUltrahandMenu = (m_title == ult::CAPITAL_RYZHAND_PROJECT_NAME && 
                                                      m_subtitle.find("Ultrahand Package") == std::string::npos && 
                                                      m_subtitle.find("Ultrahand Script")  == std::string::npos);
                 
@@ -5036,7 +5036,7 @@ namespace tsl {
                     if (pos != std::string::npos) subtitle.erase(pos, 17);
                     calcScrollWidth(renderer, subScroll, subtitle, 15, widgetDrawn);
                     const int subtitleX = 20, subtitleY = y + 25;
-                    if (m_title == ult::CAPITAL_ULTRAHAND_PROJECT_NAME) {
+                    if (m_title == ult::CAPITAL_RYZHAND_PROJECT_NAME) {
                         renderer->drawStringWithColoredSections(ult::versionLabel, false, tsl::s_dividerSpecialChars,
                                                                subtitleX, subtitleY, 15, bannerVersionTextColor, textSeparatorColor);
                     } else if (subScroll.trunc) {
@@ -12205,7 +12205,7 @@ namespace tsl {
     
     namespace impl {
         static constexpr const char* TESLA_CONFIG_FILE = "/config/tesla/config.ini";
-        static constexpr const char* ULTRAHAND_CONFIG_FILE = "/config/ultrahand/config.ini";
+        static constexpr const char* RYZHAND_CONFIG_FILE = "/config/ultrahand/config.ini";
         
         /**
          * @brief Data shared between the different ult::renderThreads
@@ -12241,7 +12241,7 @@ namespace tsl {
         static void updateCombo(u64 keys) {
             tsl::cfg::launchCombo = keys;
             const std::string comboStr = tsl::hlp::keysToComboString(keys);
-            ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, ult::KEY_COMBO_STR, comboStr);
+            ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::KEY_COMBO_STR, comboStr);
             ult::setIniFileValue(ult::TESLA_CONFIG_INI_PATH,     ult::TESLA_STR,              ult::KEY_COMBO_STR, comboStr);
         }
         
@@ -12696,8 +12696,8 @@ namespace tsl {
                     if (triggerExitNow) {
                         ult::launchingOverlay.store(true, std::memory_order_release);
                         ult::setIniFileValue(
-                            ult::ULTRAHAND_CONFIG_INI_PATH,
-                            ult::ULTRAHAND_PROJECT_NAME,
+                            ult::RYZHAND_CONFIG_INI_PATH,
+                            ult::RYZHAND_PROJECT_NAME,
                             ult::IN_OVERLAY_STR,
                             ult::FALSE_STR
                         );
@@ -12736,8 +12736,8 @@ namespace tsl {
                                 minusHoldArmed = false;
                                 ult::useNotifications = !ult::useNotifications;
                                 ult::setIniFileValue(
-                                    ult::ULTRAHAND_CONFIG_INI_PATH,
-                                    ult::ULTRAHAND_PROJECT_NAME,
+                                    ult::RYZHAND_CONFIG_INI_PATH,
+                                    ult::RYZHAND_PROJECT_NAME,
                                     "notifications",
                                     ult::useNotifications ? ult::TRUE_STR : ult::FALSE_STR
                                 );
@@ -12765,8 +12765,8 @@ namespace tsl {
                     if ((((shData->keysHeld & tsl::cfg::launchCombo) == tsl::cfg::launchCombo) && shData->keysDown & tsl::cfg::launchCombo)) {
                     #if IS_LAUNCHER_DIRECTIVE
                         if (ult::updateMenuCombos) {
-                            ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, ult::KEY_COMBO_STR , ult::ULTRAHAND_COMBO_STR);
-                            ult::setIniFileValue(ult::TESLA_CONFIG_INI_PATH, ult::TESLA_STR, ult::KEY_COMBO_STR , ult::ULTRAHAND_COMBO_STR);
+                            ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::KEY_COMBO_STR , ult::RYZHAND_COMBO_STR);
+                            ult::setIniFileValue(ult::TESLA_CONFIG_INI_PATH, ult::TESLA_STR, ult::KEY_COMBO_STR , ult::RYZHAND_COMBO_STR);
                             ult::updateMenuCombos = false;
                         }
                     #endif
@@ -12796,7 +12796,7 @@ namespace tsl {
                 #if IS_LAUNCHER_DIRECTIVE
                     else if (ult::updateMenuCombos && (((shData->keysHeld & tsl::cfg::launchCombo2) == tsl::cfg::launchCombo2) && shData->keysDown & tsl::cfg::launchCombo2)) {
                         std::swap(tsl::cfg::launchCombo, tsl::cfg::launchCombo2); // Swap the two launch combos
-                        ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, ult::KEY_COMBO_STR , ult::TESLA_COMBO_STR);
+                        ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::KEY_COMBO_STR , ult::TESLA_COMBO_STR);
                         ult::setIniFileValue(ult::TESLA_CONFIG_INI_PATH, ult::TESLA_STR, ult::KEY_COMBO_STR , ult::TESLA_COMBO_STR);
                         eventFire(&shData->comboEvent);
                         mainComboHasTriggered.store(true, std::memory_order_release);
@@ -12821,8 +12821,8 @@ namespace tsl {
         
                             // OPTIMIZED: Batch INI file writes
                             {
-                                ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, ult::IN_OVERLAY_STR, ult::TRUE_STR);
-                                ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, "to_packages", ult::TRUE_STR);
+                                ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::IN_OVERLAY_STR, ult::TRUE_STR);
+                                ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, "to_packages", ult::TRUE_STR);
                             }
         
                             // Reset navigation state variables (these control slide navigation)
@@ -12884,8 +12884,8 @@ namespace tsl {
                     #if !IS_LAUNCHER_DIRECTIVE
                                 if (lastOverlayFilename == overlayFileName && lastOverlayMode == modeArg) {
                                     ult::setIniFileValue(
-                                        ult::ULTRAHAND_CONFIG_INI_PATH,
-                                        ult::ULTRAHAND_PROJECT_NAME,
+                                        ult::RYZHAND_CONFIG_INI_PATH,
+                                        ult::RYZHAND_PROJECT_NAME,
                                         ult::IN_OVERLAY_STR,
                                         ult::TRUE_STR
                                     );
@@ -12897,8 +12897,8 @@ namespace tsl {
                                         const auto hideStatus = ult::parseValueFromIniSection(
                                             ult::OVERLAYS_INI_FILEPATH, overlayFileName, ult::HIDE_STR);
                                         if (hideStatus == ult::TRUE_STR) {
-                                            ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH,
-                                                ult::ULTRAHAND_PROJECT_NAME,
+                                            ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH,
+                                                ult::RYZHAND_PROJECT_NAME,
                                                 ult::IN_HIDDEN_OVERLAY_STR, ult::TRUE_STR);
                                         }
                                     }
@@ -12911,8 +12911,8 @@ namespace tsl {
                                 // Case 1 — overlay/mode match (quick-launch, status-monitor, etc.)
                                 if (lastOverlayFilename == overlayFileName && lastOverlayMode == modeArg) {
                                     ult::setIniFileValue(
-                                        ult::ULTRAHAND_CONFIG_INI_PATH,
-                                        ult::ULTRAHAND_PROJECT_NAME,
+                                        ult::RYZHAND_CONFIG_INI_PATH,
+                                        ult::RYZHAND_PROJECT_NAME,
                                         ult::IN_OVERLAY_STR,
                                         ult::TRUE_STR
                                     );
@@ -12923,8 +12923,8 @@ namespace tsl {
                                         const auto hideStatus = ult::parseValueFromIniSection(
                                             ult::OVERLAYS_INI_FILEPATH, overlayFileName, ult::HIDE_STR);
                                         if (hideStatus == ult::TRUE_STR) {
-                                            ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH,
-                                                ult::ULTRAHAND_PROJECT_NAME,
+                                            ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH,
+                                                ult::RYZHAND_PROJECT_NAME,
                                                 ult::IN_HIDDEN_OVERLAY_STR, ult::TRUE_STR);
                                         }
                                     }
@@ -12961,8 +12961,8 @@ namespace tsl {
                                             ult::getNameFromPath(strippedPkg) == comboPackagePath) {
 
                                             ult::setIniFileValue(
-                                                ult::ULTRAHAND_CONFIG_INI_PATH,
-                                                ult::ULTRAHAND_PROJECT_NAME,
+                                                ult::RYZHAND_CONFIG_INI_PATH,
+                                                ult::RYZHAND_PROJECT_NAME,
                                                 ult::IN_OVERLAY_STR,
                                                 ult::TRUE_STR
                                             );
@@ -12970,8 +12970,8 @@ namespace tsl {
                                             // so the new ovlmenu boots into hidden-packages mode.
                                             if (ult::inHiddenMode.load(std::memory_order_acquire)) {
                                                 ult::setIniFileValue(
-                                                    ult::ULTRAHAND_CONFIG_INI_PATH,
-                                                    ult::ULTRAHAND_PROJECT_NAME,
+                                                    ult::RYZHAND_CONFIG_INI_PATH,
+                                                    ult::RYZHAND_PROJECT_NAME,
                                                     ult::IN_HIDDEN_PACKAGE_STR,
                                                     ult::TRUE_STR
                                                 );
@@ -13012,7 +13012,7 @@ namespace tsl {
         
                                 if (overlayFileName.compare("ovlmenu.ovl") == 0) {
                                     finalArgs += " --comboReturn";
-                                    ult::setIniFileValue(ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME, ult::IN_OVERLAY_STR, ult::TRUE_STR);
+                                    ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::IN_OVERLAY_STR, ult::TRUE_STR);
                                 }
 
                                 tsl::setNextOverlay(overlayPath, finalArgs);
@@ -13654,11 +13654,11 @@ namespace tsl {
     #if IS_LAUNCHER_DIRECTIVE
        
         {
-            auto configData = ult::getParsedDataFromIniFile(ult::ULTRAHAND_CONFIG_INI_PATH);
+            auto configData = ult::getParsedDataFromIniFile(ult::RYZHAND_CONFIG_INI_PATH);
             bool needsUpdate = false;
         
             // Get reference to project section (create if missing)
-            auto& project = configData[ult::ULTRAHAND_PROJECT_NAME];
+            auto& project = configData[ult::RYZHAND_PROJECT_NAME];
         
             // Determine current overlay state
             bool inOverlay = true;
@@ -13678,7 +13678,7 @@ namespace tsl {
         
             // Write INI only if we changed something
             if (needsUpdate) {
-                ult::saveIniFileData(ult::ULTRAHAND_CONFIG_INI_PATH, configData);
+                ult::saveIniFileData(ult::RYZHAND_CONFIG_INI_PATH, configData);
             }
         
             // Fire event if needed
@@ -13690,9 +13690,9 @@ namespace tsl {
         }
     #else
         {
-            auto configData = ult::getParsedDataFromIniFile(ult::ULTRAHAND_CONFIG_INI_PATH);
+            auto configData = ult::getParsedDataFromIniFile(ult::RYZHAND_CONFIG_INI_PATH);
         
-            auto projectIt = configData.find(ult::ULTRAHAND_PROJECT_NAME);
+            auto projectIt = configData.find(ult::RYZHAND_PROJECT_NAME);
             if (projectIt != configData.end()) {
                 auto& project = projectIt->second;
         
@@ -13702,7 +13702,7 @@ namespace tsl {
         
                 if (inOverlay && directMode) {
                     project[ult::IN_OVERLAY_STR] = ult::FALSE_STR;
-                    ult::saveIniFileData(ult::ULTRAHAND_CONFIG_INI_PATH, configData);
+                    ult::saveIniFileData(ult::RYZHAND_CONFIG_INI_PATH, configData);
                 }
             }
         }
