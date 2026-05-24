@@ -575,8 +575,10 @@ namespace ult {
     
     
     
-    // Function to load the RGBA file into memory and modify wallpaperData directly
-    bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize);
+    // Load PNG wallpaper -> wallpaperData (RGBA4444). Реализация в .cpp
+    // использует libpng. Поддерживает RGB/RGBA/grayscale/palette + tRNS.
+    // Старый loadRGBA8888toRGBA4444 удалён -- raw-RGBA формат больше не
+    // поддерживается, юзер кладёт *.png.
     void loadWallpaperFile(const std::string& filePath, s32 width = 448, s32 height = 720);
     void loadWallpaperFileWhenSafe();
 

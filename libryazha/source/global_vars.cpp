@@ -45,7 +45,7 @@ namespace ult {
     const std::string EXIT_PACKAGE_FILENAME            = "exit_package.ini";
     const std::string PACKAGE_FILENAME                 = "package.ini";
     const std::string THEME_FILENAME                   = "theme.ini";
-    const std::string WALLPAPER_FILENAME               = "wallpaper.rgba";
+    const std::string WALLPAPER_FILENAME               = "wallpaper.png";
     const std::string FUSE_FILENAME                    = "fuse.ini";
     const std::string OVERLAYS_INI_FILENAME            = "overlays.ini";
     const std::string PACKAGES_INI_FILENAME            = "packages.ini";

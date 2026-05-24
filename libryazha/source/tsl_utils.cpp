@@ -20,6 +20,11 @@
 
 #include <tsl_utils.hpp>
 
+// libpng для декодирования wallpaper.png в RGBA4444 для tesla-рендера.
+// linked through Makefile via -lpng -lz.
+#include <png.h>
+#include <arm_neon.h>
+
 //#include <cstdlib>
 extern "C" { // assertion override
     void __assert_func(const char *_file, int _line, const char *_func, const char *_expr ) {
@@ -919,47 +924,114 @@ namespace ult {
     std::mutex wallpaperMutex;
     std::condition_variable cv;
     
-    bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize) {
-        FILE* f = fopen(filePath.c_str(), "rb");
-        if (!f) return false;
-    
+    // Утиль: пакует RGBA8888-строку (width пикселей) в RGBA4444 in-place
+    // в выходной буфер dst (width*2 байт). NEON-ускоренный путь для блоков
+    // по 16 байт, fallback на скаляр для хвоста.
+    static void packRGBA8888toRGBA4444Row(const u8* src, u8* dst, size_t width) {
         const uint8x8_t mask = vdup_n_u8(0xF0);
-        constexpr size_t chunkBytes = 128 * 1024;
-        uint8_t chunkBuffer[chunkBytes];
-        size_t totalRead = 0;
-    
-        setvbuf(f, nullptr, _IOFBF, chunkBytes);
-    
-        while (totalRead < srcSize) {
-            const size_t toRead = std::min(srcSize - totalRead, chunkBytes);
-            const size_t bytesRead = fread(chunkBuffer, 1, toRead, f);
-            if (bytesRead == 0) { fclose(f); return false; }
-    
-            const uint8_t* src = chunkBuffer;
-            size_t i = 0;
-            for (; i + 16 <= bytesRead; i += 16) {
-                uint8x16_t data = vld1q_u8(src + i);
-                uint8x8x2_t sep = vuzp_u8(vget_low_u8(data), vget_high_u8(data));
-                vst1_u8(dst, vorr_u8(vand_u8(sep.val[0], mask), vshr_n_u8(sep.val[1], 4)));
-                dst += 8;
-            }
-            for (; i + 1 < bytesRead; i += 2)
-                *dst++ = (src[i] & 0xF0) | (src[i+1] >> 4);
-    
-            totalRead += bytesRead;
+        const size_t srcBytes = width * 4;
+        size_t i = 0;
+        for (; i + 16 <= srcBytes; i += 16) {
+            uint8x16_t data = vld1q_u8(src + i);
+            uint8x8x2_t sep = vuzp_u8(vget_low_u8(data), vget_high_u8(data));
+            vst1_u8(dst, vorr_u8(vand_u8(sep.val[0], mask), vshr_n_u8(sep.val[1], 4)));
+            dst += 8;
         }
-    
-        fclose(f);
+        for (; i + 1 < srcBytes; i += 2)
+            *dst++ = (src[i] & 0xF0) | (src[i+1] >> 4);
+    }
+
+    // Decode PNG -> RGBA4444 buffer for tesla wallpaper renderer.
+    // Поддерживает RGB/RGBA/grayscale/palette + transparency. Масштабирует
+    // 16-bit-per-channel в 8-bit, разворачивает интерлейс. Если PNG-размеры
+    // не совпадают с (width × height), доступная область crop'ится из
+    // верхнего-левого угла, остальное оставляется черным/прозрачным.
+    //
+    // Заменил предыдущий raw-RGBA reader. Старый формат wallpaper.rgba
+    // (1290240 байт raw 448x720) больше не поддерживается -- если user
+    // ещё держит .rgba файл, переименуйте в .png через ImageMagick:
+    //     convert wallpaper.rgba -depth 8 -size 448x720 RGBA wallpaper.png
+    static bool loadPngToRGBA4444(const std::string& filePath, u8* dst,
+                                  s32 outWidth, s32 outHeight) {
+        FILE* f = std::fopen(filePath.c_str(), "rb");
+        if (!f) return false;
+
+        unsigned char sig[8];
+        if (std::fread(sig, 1, 8, f) != 8 || png_sig_cmp(sig, 0, 8)) {
+            std::fclose(f);
+            return false;
+        }
+
+        png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+        if (!png) { std::fclose(f); return false; }
+        png_infop info = png_create_info_struct(png);
+        if (!info) {
+            png_destroy_read_struct(&png, nullptr, nullptr);
+            std::fclose(f);
+            return false;
+        }
+        if (setjmp(png_jmpbuf(png))) {
+            png_destroy_read_struct(&png, &info, nullptr);
+            std::fclose(f);
+            return false;
+        }
+
+        png_init_io(png, f);
+        png_set_sig_bytes(png, 8);
+        png_read_info(png, info);
+
+        png_uint_32 w = png_get_image_width(png, info);
+        png_uint_32 h = png_get_image_height(png, info);
+        png_byte    colorType = png_get_color_type(png, info);
+        png_byte    bitDepth  = png_get_bit_depth(png, info);
+
+        // Нормализуем всё в RGBA8888 на чтении.
+        if (bitDepth == 16)                              png_set_strip_16(png);
+        if (colorType == PNG_COLOR_TYPE_PALETTE)         png_set_palette_to_rgb(png);
+        if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8) png_set_expand_gray_1_2_4_to_8(png);
+        if (png_get_valid(png, info, PNG_INFO_tRNS))     png_set_tRNS_to_alpha(png);
+        if (colorType == PNG_COLOR_TYPE_RGB ||
+            colorType == PNG_COLOR_TYPE_GRAY ||
+            colorType == PNG_COLOR_TYPE_PALETTE)
+            png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
+        if (colorType == PNG_COLOR_TYPE_GRAY ||
+            colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
+            png_set_gray_to_rgb(png);
+
+        png_read_update_info(png, info);
+
+        const size_t rowBytes = png_get_rowbytes(png, info);   // = w*4 после filler
+        std::vector<u8> rowBuf(rowBytes);
+
+        // Пакуем построчно сразу в RGBA4444 dst. Если PNG шире/уже target --
+        // crop/zero-pad по строке.
+        const size_t copyW = std::min<size_t>(w, (size_t)outWidth);
+        const size_t outRowBytes = (size_t)outWidth * 2;  // RGBA4444 = 2 байта/пиксель
+
+        // Сначала zero-fill всего dst, чтобы недостающие строки/края остались
+        // чёрными прозрачными.
+        std::memset(dst, 0, (size_t)outWidth * (size_t)outHeight * 2);
+
+        for (png_uint_32 y = 0; y < h && (s32)y < outHeight; ++y) {
+            png_read_row(png, rowBuf.data(), nullptr);
+            // Если src-row уже = outWidth -- пакуем напрямую. Иначе crop.
+            packRGBA8888toRGBA4444Row(rowBuf.data(), dst + (size_t)y * outRowBytes, copyW);
+        }
+
+        png_read_end(png, nullptr);
+        png_destroy_read_struct(&png, &info, nullptr);
+        std::fclose(f);
         return true;
     }
 
-    
+    // Public entry: загрузить wallpaper.png в wallpaperData (RGBA4444 packed).
+    // На IO/decode error -- очищает буфер (рендер тогда покажет default bg).
     void loadWallpaperFile(const std::string& filePath, s32 width, s32 height) {
-        const size_t srcSize = width * height * 4;
-        wallpaperData.resize(srcSize / 2);
+        wallpaperData.resize((size_t)width * (size_t)height * 2);
         if (!isFile(filePath) ||
-            !loadRGBA8888toRGBA4444(filePath, wallpaperData.data(), srcSize))
+            !loadPngToRGBA4444(filePath, wallpaperData.data(), width, height)) {
             wallpaperData.clear();
+        }
     }
     
 
