@@ -575,10 +575,16 @@ namespace ult {
     
     
     
+    // Raw RGBA8888 file -> packed RGBA4444. Используется для маленьких
+    // фиксированного размера иконок (notification icons -- 32×32 .rgba)
+    // где имеет смысл хранить уже-готовый raw-формат вместо PNG.
+    // Wallpaper использует другую функцию loadWallpaperFile (PNG).
+    bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize);
+
     // Load PNG wallpaper -> wallpaperData (RGBA4444). Реализация в .cpp
-    // использует libpng. Поддерживает RGB/RGBA/grayscale/palette + tRNS.
-    // Старый loadRGBA8888toRGBA4444 удалён -- raw-RGBA формат больше не
-    // поддерживается, юзер кладёт *.png.
+    // через libpng. Поддерживает RGB/RGBA/grayscale/palette + tRNS,
+    // 8/16-bit depth, произвольное разрешение (nearest-neighbor scale
+    // в 448×720).
     void loadWallpaperFile(const std::string& filePath, s32 width = 448, s32 height = 720);
     void loadWallpaperFileWhenSafe();
 

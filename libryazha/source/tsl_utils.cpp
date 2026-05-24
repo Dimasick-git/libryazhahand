@@ -924,6 +924,44 @@ namespace ult {
     std::mutex wallpaperMutex;
     std::condition_variable cv;
     
+    // Raw RGBA8888 файл -> RGBA4444. Используется tesla.cpp'ом для
+    // notification icons (32×32 raw .rgba файлы под NOTIFICATIONS_ICONS_PATH).
+    // Wallpaper больше не использует этот формат -- юзер кладёт *.png,
+    // libpng декодирует в loadWallpaperFile ниже.
+    bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize) {
+        FILE* f = std::fopen(filePath.c_str(), "rb");
+        if (!f) return false;
+
+        const uint8x8_t mask = vdup_n_u8(0xF0);
+        constexpr size_t chunkBytes = 128 * 1024;
+        uint8_t chunkBuffer[chunkBytes];
+        size_t totalRead = 0;
+
+        std::setvbuf(f, nullptr, _IOFBF, chunkBytes);
+
+        while (totalRead < srcSize) {
+            const size_t toRead = std::min(srcSize - totalRead, chunkBytes);
+            const size_t bytesRead = std::fread(chunkBuffer, 1, toRead, f);
+            if (bytesRead == 0) { std::fclose(f); return false; }
+
+            const uint8_t* src = chunkBuffer;
+            size_t i = 0;
+            for (; i + 16 <= bytesRead; i += 16) {
+                uint8x16_t data = vld1q_u8(src + i);
+                uint8x8x2_t sep = vuzp_u8(vget_low_u8(data), vget_high_u8(data));
+                vst1_u8(dst, vorr_u8(vand_u8(sep.val[0], mask), vshr_n_u8(sep.val[1], 4)));
+                dst += 8;
+            }
+            for (; i + 1 < bytesRead; i += 2)
+                *dst++ = (src[i] & 0xF0) | (src[i+1] >> 4);
+
+            totalRead += bytesRead;
+        }
+
+        std::fclose(f);
+        return true;
+    }
+
     // Утиль: пакует RGBA8888-строку (width пикселей) в RGBA4444 in-place
     // в выходной буфер dst (width*2 байт). NEON-ускоренный путь для блоков
     // по 16 байт, fallback на скаляр для хвоста.
