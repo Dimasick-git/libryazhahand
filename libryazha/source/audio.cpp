@@ -62,6 +62,38 @@ namespace ult {
 
         reloadAllSounds();
 
+        // PRIME audout с silent-буфером.
+        //
+        // audoutPlayBuffer() = audoutAppendAudioOutBuffer + audoutWaitPlayFinish.
+        // На ПЕРВЫЙ вызов аудио-движок имеет startup-cost ~200-300ms
+        // (DMA engine инициализирует свой pipeline, ASIC просыпается).
+        // Эти 200-300ms блокируют sound-thread в audoutPlayBuffer.
+        //
+        // Симптом без prime: юзер жмёт X -> sound thread начинает первый
+        // playSound -> blocks 300ms внутри audoutWaitPlayFinish. За эти
+        // 300ms юзер уже жмёт следующую кнопку -> новый signal сидит в
+        // soundEvent. Когда первый sound завершается (slow), thread сразу
+        // подбирает следующий -> два звука звучат вплотную, и юзер
+        // слышит "X не сыграл, а сыграл вместе со следующим".
+        //
+        // Решение: одноразово отправить silent (zero-fill) буфер ещё на
+        // initialize. Эти 300ms приёма уйдут синхронно в initServices
+        // (юзер ещё не открыл overlay, ничего не слышно). После этого
+        // engine полностью awake, последующие audoutPlayBuffer возвращают
+        // в течение реального duration WAV'а (10-30ms), juzer слышит
+        // звук сразу после нажатия.
+        if (m_playBuf && m_playBufCap > 0) {
+            const uint32_t primeBytes = std::min<uint32_t>(m_playBufCap, AUDIO_ALIGN);
+            std::memset(m_playBuf, 0, primeBytes);
+            AudioOutBuffer prime = {};
+            prime.buffer      = m_playBuf;
+            prime.buffer_size = primeBytes;
+            prime.data_size   = primeBytes;
+            prime.data_offset = 0;
+            AudioOutBuffer* rel = nullptr;
+            audoutPlayBuffer(&prime, &rel);
+        }
+
         return true;
     }
 
