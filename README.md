@@ -1,94 +1,66 @@
 # libryazhahand
 
-Лёгкая Tesla/overlay-библиотека, лежащая в основе экосистемы
-[Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay)
-и [RCU (ryazha-clk)](https://github.com/Dimanchikgshehsbshene/RCU).
-Это source-совместимый форк
-[ppkantorski/libultrahand](https://github.com/ppkantorski/libultrahand) с одним
-практическим изменением: runtime-namespace конфигурации называется
-`ryazhahand`, а не `ultrahand`. Оверлеи, собранные с этой библиотекой,
-читают темы, звуки и настройки из `/config/ryazhahand/`.
+**EN:** Tesla overlay library for Nintendo Switch homebrew. Source-compatible fork of [ppkantorski/libultrahand](https://github.com/ppkantorski/libultrahand) with the runtime config namespace changed from `ultrahand` to `ryazhahand` (overlays read themes/sounds/settings from `/config/ryazhahand/` instead of `/config/ultrahand/`). Used by Ryazhahand-Overlay and RCU. License: GPL-2.0.
 
-- Автор форка: **Dimasick-git**
-- Лицензия: **GPL-2.0** (см. `LICENSE`, оригинальная лицензия upstream
-  сохранена в `SUB_LICENSE`)
-- Версия API: совместима с upstream libultrahand на коммите, указанном в
-  `.upstream-sync`
+---
 
-## Что внутри
+## Что это
 
-| Каталог | Описание |
-|------------|------------------------------------------------------------|
-| `libryazha/` | Логика библиотеки: I/O, JSON, INI, hex, путь, аудио, haptics. |
-| `libtesla/` | Tesla overlay-фреймворк: GUI, элементы, ввод, рендер. |
-| `common/` | Общий код: download, exception wrap, cJSON, get_funcs. |
-| `example/` | Минимальный референсный overlay (собирается через CI). |
-| `scripts/` | `sync_from_upstream.py` — авто-синхронизация с upstream. |
+Tesla/overlay-библиотека для homebrew-оверлеев Nintendo Switch (libnx). Канонический submodule для всех проектов Ryazha-экосистемы:
 
-## Подключение в проект
+- [Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay) — главный Tesla-меню.
+- [RCU (ryazha-clk)](https://github.com/Dimanchikgshehsbshene/RCU) — overlay для управления частотами.
+- Любые сторонние оверлеи которые хотят `/config/ryazhahand/` вместо `/config/ultrahand/`.
 
-Добавьте библиотеку как git submodule в оверлей:
+Source-совместима с upstream libultrahand — большинство Ultrahand-overlay'ев пересобираются под libryazhahand без правок исходников, только пересборка с новым submodule.
+
+## Состав
+
+| Каталог | Что внутри |
+|---------|------------|
+| `libryazha/` | C++ utility headers + i18n + config helpers. Фор `ult::` namespace (бинарная совместимость с upstream). |
+| `libtesla/` | UI primitives (List, ListItem, NamedStepTrackBar и т.д.). Форк WerWolv/libtesla с дополнениями. |
+
+Подключение в проектах:
+
+```cpp
+#include <tesla.hpp>     // UI: tsl::elm::*, tsl::Gui, tsl::changeTo, etc.
+#include <tsl_utils.hpp> // ult:: namespace helpers
+```
+
+## Главные отличия от upstream
+
+- `RYZHAND_*` symbol prefix (вместо `ULTRAHAND_*`).
+- `BASE_CONFIG_PATH = "/config/ryazhahand/"`.
+- PNG-обои через libpng (`loadPngToRGBA4444`) вместо raw `.rgba`.
+- Расширенный аудио-pipeline (prime silent buffer в `Audio::initialize()` против первой-press lag'а).
+- Поддержка `loadRGBA8888toRGBA4444` для notification-иконок (32×32).
+
+## Использование как submodule
 
 ```sh
-git submodule add https://github.com/Dimanchikgshehsbshene/libryazhahand.git \
-    lib/libryazhahand
+# В проекте, который зависит от Tesla:
+git submodule add https://github.com/Dimanchikgshehsbshene/libryazhahand.git lib/libryazhahand
+git submodule update --init --recursive
+
+# Makefile:
+LIBDIRS += $(CURDIR)/lib/libryazhahand
 ```
 
-Затем в `Makefile` оверлея:
+## Sync с upstream
 
-```make
-include ${TOPDIR}/lib/libryazhahand/ryazhahand.mk
-```
-
-Этого достаточно — пути include, список source-файлов и -I флаги
-подтянутся автоматически. Линковка libs (`-lcurl -lz -lmbedtls
--lmbedx509 -lmbedcrypto -lnx`) и `-D__SWITCH__` остаются на стороне
-оверлея, как у upstream.
-
-## Каталоги конфигурации
-
-| Что | Лежит в |
-|-----------------|-----------------------------------------------------------|
-| Темы | `sdmc:/config/ryazhahand/themes/` |
-| Звуки | `sdmc:/config/ryazhahand/sounds/` |
-| Оверлеи | `sdmc:/switch/.overlays/` |
-| Конфиг библиотеки | `sdmc:/config/ryazhahand/config.ini` |
-
-## Синхронизация с upstream
-
-`scripts/sync_from_upstream.py` запускается раз в сутки через GitHub
-Actions (`.github/workflows/sync_from_upstream.yml`) и переносит новые
-коммиты из `ppkantorski/libultrahand` в это дерево. Каждый коммит
-проходит через узкий набор branding-переписывалок (см. `CONTENT_REWRITES`
-в скрипте). Публичные namespace, заголовки, сигнатуры классов и функций
-совпадают с upstream, чтобы смена библиотеки в оверлее сводилась к
-изменению `include` в `Makefile`.
-
-Текущая отметка upstream хранится в `.upstream-sync`. Ручной запуск:
+`.upstream-sync` — коммит upstream libultrahand с которым мы синхронизированы. Обновление вручную:
 
 ```sh
-python3 scripts/sync_from_upstream.py            # применить
-python3 scripts/sync_from_upstream.py --dry-run  # предпросмотр
+# В корне libryazhahand:
+git remote add upstream https://github.com/ppkantorski/libultrahand.git  # один раз
+git fetch upstream
+git merge upstream/main  # резолвим конфликты в global_vars.cpp -- наш ryazhahand namespace
+echo "<new-upstream-sha>" > .upstream-sync
 ```
-
-## Сборка example
-
-```sh
-cd example
-make -j$(nproc)
-```
-
-CI (`.github/workflows/verify_build.yml`) делает то же самое в контейнере
-`devkitpro/devkita64` и помечает PR красным, если сборка падает.
-
-## Где используется
-
-- [Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay) — основной overlay-меню для CFW Switch.
-- [RCU / ryazha-clk](https://github.com/Dimanchikgshehsbshene/RCU) — overlay управления частотами и режимами CFW.
-- RyazhaTune, Ryazha-Status-Monitor, Living_Ladders — модули из общей
-  экосистемы, использующие тот же libryazhahand.
 
 ## Лицензия
 
-GPL-2.0 (см. `LICENSE`). Все upstream-права сохранены, авторство
-оригинала `ppkantorski` указано в `SUB_LICENSE`.
+GPL-2.0. См. `LICENSE`. Upstream lic-история сохранена в `SUB_LICENSE`.
+
+Авторы: ppkantorski (upstream Ultrahand/libultra), WerWolv (libtesla основа), Dimasick-git (Ryazha-форк).
