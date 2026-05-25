@@ -8,8 +8,8 @@
 
 Tesla/overlay-библиотека для homebrew-оверлеев Nintendo Switch (libnx). Канонический submodule для всех проектов Ryazha-экосистемы:
 
-- [Ryazhahand-Overlay](https://github.com/Dimanchikgshehsbshene/Ryazhahand-Overlay) — главный Tesla-меню.
-- [RCU (ryazha-clk)](https://github.com/Dimanchikgshehsbshene/RCU) — overlay для управления частотами.
+- [Ryazhahand-Overlay](https://github.com/Dimasick-git/Ryazhahand-Overlay) — главный Tesla-меню.
+- [RCU (ryazha-clk)](https://github.com/Dimasick-git/RCU) — overlay для управления частотами.
 - Любые сторонние оверлеи которые хотят `/config/ryazhahand/` вместо `/config/ultrahand/`.
 
 Source-совместима с upstream libultrahand — большинство Ultrahand-overlay'ев пересобираются под libryazhahand без правок исходников, только пересборка с новым submodule.
@@ -40,7 +40,7 @@ Source-совместима с upstream libultrahand — большинство 
 
 ```sh
 # В проекте, который зависит от Tesla:
-git submodule add https://github.com/Dimanchikgshehsbshene/libryazhahand.git lib/libryazhahand
+git submodule add https://github.com/Dimasick-git/libryazhahand.git lib/libryazhahand
 git submodule update --init --recursive
 
 # Makefile:
