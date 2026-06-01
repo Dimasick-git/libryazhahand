@@ -76,6 +76,15 @@ EXCLUDED_PATHS = {
     # CI container refuses to parse. We keep our do/while(0) rewrite.
     # If upstream eventually moves off the GNU extension, drop this entry.
     "libtesla/include/tesla.hpp",
+    # tsl_utils.hpp / tsl_utils.cpp содержат наши кастомные добавки:
+    # per-event sound toggles (useNavigationSound, useEnterSound, useExitSound,
+    # useWallSound), u64 holdDurationMs (PR #309 backport), PNG-wallpaper loader,
+    # RYZHAND_* идентификаторы, SOUND_SUPPORT_DISABLED, INPUT/HOLD_TIME strings,
+    # TXT_READER / SOUND_EFFECTS / SOUND_NAVIGATION / ... строки UI,
+    # LIBRYZHAND_TITLES / LIBRYZHAND_VERSIONS, RYZHAND_HAS_STARTED и т.д.
+    # Слепое копирование из апстрима всё это затирает -- держим файлы вручную.
+    "libultra/include/tsl_utils.hpp",
+    "libultra/source/tsl_utils.cpp",
 }
 
 
