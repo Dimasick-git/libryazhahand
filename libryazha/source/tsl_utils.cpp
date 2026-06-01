@@ -3,7 +3,7 @@
  * Author: ppkantorski
  * Description: 
  *   'tsl_utils.cpp' provides the implementation of various utility functions
- *   defined in 'tsl_utils.hpp' for the RyazhaHand Overlay project. This source file
+ *   defined in 'tsl_utils.hpp' for the Ultrahand Overlay project. This source file
  *   includes functionality for system checks, input handling, time-based interpolation,
  *   and other application-specific features essential for operating custom overlays
  *   on the Nintendo Switch.
@@ -19,6 +19,11 @@
  ********************************************************************************/
 
 #include <tsl_utils.hpp>
+
+// libpng для декодирования wallpaper.png в RGBA4444 для tesla-рендера.
+// linked through Makefile via -lpng -lz.
+#include <png.h>
+#include <arm_neon.h>
 
 //#include <cstdlib>
 extern "C" { // assertion override
@@ -208,6 +213,9 @@ namespace ult {
     std::atomic<bool> internalTouchReleased(true);
 
     u32 layerEdge = 0;
+
+    // (Старое u32 holdDurationMs = 3000 удалено. Используем u64-версию ниже
+    // от PR #309 backport. Дубль ломал сборку.)
     bool useRightAlignment = false;
     bool useSwipeToOpen = true;
     bool useLaunchCombos = true;
@@ -218,6 +226,17 @@ namespace ult {
     bool useStartupNotification = true;
     bool silenceNotifications = false;
     bool useSoundEffects = true;
+
+    // Per-event sound toggles -- все по умолчанию true, чтобы апгрейд
+    // libryazhahand не выключал звуки у тех, у кого они работали.
+    bool useNavigationSound = true;
+    bool useEnterSound      = true;
+    bool useExitSound       = true;
+    bool useWallSound       = true;
+
+    // PR #309 backport: 4 сек -- то самое значение, что было захардкожено
+    // в processHold до этого PR. Overlay-side читает на каждом frame.
+    u64 holdDurationMs = 4000;
     bool useHapticFeedback = false;
     bool useAutoNTPSync = true;
     bool usePageSwap = false;
@@ -403,6 +422,8 @@ namespace ult {
     std::string FAVORITE;
     std::string MAIN_SETTINGS;
     std::string UI_SETTINGS;
+    std::string INPUT;       // libultrahand#16
+    std::string HOLD_TIME;   // libultrahand#16
     std::string WIDGET;
     std::string WIDGET_ITEMS;
     std::string WIDGET_SETTINGS;
@@ -434,7 +455,7 @@ namespace ult {
     std::string LANGUAGE;
     std::string OVERLAY_INFO;
     std::string SOFTWARE_UPDATE;
-    std::string UPDATE_ULTRAHAND;
+    std::string UPDATE_RYZHAND;
     std::string SYSTEM;
     std::string DEVICE_INFO;
     std::string FIRMWARE;
@@ -447,13 +468,13 @@ namespace ult {
     std::string OVERLAY_MEMORY;
     std::string NOT_ENOUGH_MEMORY;
     std::string WALLPAPER_SUPPORT_DISABLED;
-    //std::string SOUND_SUPPORT_DISABLED;
+    std::string SOUND_SUPPORT_DISABLED;
     std::string WALLPAPER_SUPPORT_ENABLED;
     std::string SOUND_SUPPORT_ENABLED;
     std::string EXIT_OVERLAY_SYSTEM;
-    std::string ULTRAHAND_ABOUT;
-    std::string ULTRAHAND_CREDITS_START;
-    std::string ULTRAHAND_CREDITS_END;
+    std::string RYZHAND_ABOUT;
+    std::string RYZHAND_CREDITS_START;
+    std::string RYZHAND_CREDITS_END;
     std::string LOCAL_IP;
     std::string WALLPAPER;
     std::string THEME;
@@ -501,11 +522,26 @@ namespace ult {
     std::string SELECTION_BACKGROUND;
     std::string SELECTION_TEXT;
     std::string SELECTION_VALUE;
-    std::string LIBULTRAHAND_TITLES;
-    std::string LIBULTRAHAND_VERSIONS;
+    std::string LIBRYZHAND_TITLES;
+    std::string LIBRYZHAND_VERSIONS;
     std::string PACKAGE_TITLES;
-    std::string ULTRAHAND_HAS_STARTED;
-    std::string ULTRAHAND_HAS_RESTARTED;
+
+    // Backported из vendored Ryzhand-Overlay.
+    std::string TXT_READER;
+    std::string NO_TXT_FILES_FOUND;
+    std::string TEXT_COLOR;
+    std::string TEXT_COLOR_PICKER_HINT;
+    std::string UPDATE_LANGUAGES;
+    std::string EXTERNAL_NOTIFICATIONS;
+    std::string STAIRCASE_EFFECT;
+    std::string SOUND_EFFECTS;
+    std::string SOUND_NAVIGATION;
+    std::string SOUND_ENTER;
+    std::string SOUND_EXIT;
+    std::string SOUND_WALL;
+    std::string USERGUIDE_OFFSET;
+    std::string RYZHAND_HAS_STARTED;
+    std::string RYZHAND_HAS_RESTARTED;
     std::string NEW_UPDATE_IS_AVAILABLE;
     std::string DELETE_PACKAGE;
     std::string DELETE_OVERLAY;
@@ -520,7 +556,6 @@ namespace ult {
     #endif
 
     std::string INCOMPATIBLE_WARNING;
-    std::string OVERLAY_DOES_NOT_EXIST;
     std::string SYSTEM_RAM;
     std::string FREE;
     std::string UNAVAILABLE_SELECTION;
@@ -618,6 +653,9 @@ namespace ult {
         {&FAVORITE,                   "FAVORITE",                   "Favorite"},
         {&MAIN_SETTINGS,              "MAIN_SETTINGS",              "Main Settings"},
         {&UI_SETTINGS,                "UI_SETTINGS",                "UI Settings"},
+        // libultrahand#16 — Input settings for configurable hold duration.
+        {&INPUT,                      "INPUT",                      "Input"},
+        {&HOLD_TIME,                  "HOLD_TIME",                  "Hold Time"},
         {&WIDGET,                     "WIDGET",                     "Widget"},
         {&WIDGET_ITEMS,               "WIDGET_ITEMS",               "Widget Items"},
         {&WIDGET_SETTINGS,            "WIDGET_SETTINGS",            "Widget Settings"},
@@ -649,7 +687,7 @@ namespace ult {
         {&LANGUAGE,                   "LANGUAGE",                   "Language"},
         {&OVERLAY_INFO,               "OVERLAY_INFO",               "Overlay Info"},
         {&SOFTWARE_UPDATE,            "SOFTWARE_UPDATE",            "Software Update"},
-        {&UPDATE_ULTRAHAND,           "UPDATE_ULTRAHAND",           "Update Ultrahand"},
+        {&UPDATE_RYZHAND,           "UPDATE_RYZHAND",           "Update Ryzhand"},
         {&SYSTEM,                     "SYSTEM",                     "System"},
         {&DEVICE_INFO,                "DEVICE_INFO",                "Device Info"},
         {&FIRMWARE,                   "FIRMWARE",                   "Firmware"},
@@ -662,13 +700,13 @@ namespace ult {
         {&OVERLAY_MEMORY,             "OVERLAY_MEMORY",             "Overlay Memory"},
         {&NOT_ENOUGH_MEMORY,          "NOT_ENOUGH_MEMORY",          "Not enough memory."},
         {&WALLPAPER_SUPPORT_DISABLED, "WALLPAPER_SUPPORT_DISABLED", "Wallpaper support disabled."},
-        //{&SOUND_SUPPORT_DISABLED,     "SOUND_SUPPORT_DISABLED",     "Sound support disabled."},
+        {&SOUND_SUPPORT_DISABLED,     "SOUND_SUPPORT_DISABLED",     "Sound support disabled."},
         {&WALLPAPER_SUPPORT_ENABLED,  "WALLPAPER_SUPPORT_ENABLED",  "Wallpaper support enabled."},
         {&SOUND_SUPPORT_ENABLED,      "SOUND_SUPPORT_ENABLED",      "Sound support enabled."},
         {&EXIT_OVERLAY_SYSTEM,        "EXIT_OVERLAY_SYSTEM",        "Exit Overlay System"},
-        {&ULTRAHAND_ABOUT,            "ULTRAHAND_ABOUT",            "RyazhaHand Overlay is a customizable overlay ecosystem for overlays, commands, hotkeys, and advanced system interaction."},
-        {&ULTRAHAND_CREDITS_START,    "ULTRAHAND_CREDITS_START",    "Special thanks to "},
-        {&ULTRAHAND_CREDITS_END,      "ULTRAHAND_CREDITS_END",      " and many others. ♥"},
+        {&RYZHAND_ABOUT,            "RYZHAND_ABOUT",            "Ultrahand Overlay is a customizable overlay ecosystem for overlays, commands, hotkeys, and advanced system interaction."},
+        {&RYZHAND_CREDITS_START,    "RYZHAND_CREDITS_START",    "Special thanks to "},
+        {&RYZHAND_CREDITS_END,      "RYZHAND_CREDITS_END",      " and many others. ♥"},
         {&LOCAL_IP,                   "LOCAL_IP",                   "Local IP"},
         {&WALLPAPER,                  "WALLPAPER",                  "Wallpaper"},
         {&THEME,                      "THEME",                      "Theme"},
@@ -715,11 +753,25 @@ namespace ult {
         {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
         {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
         {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
-        {&LIBULTRAHAND_TITLES,        "LIBULTRAHAND_TITLES",        "libultrahand Titles"},
-        {&LIBULTRAHAND_VERSIONS,      "LIBULTRAHAND_VERSIONS",      "libultrahand Versions"},
+        {&LIBRYZHAND_TITLES,        "LIBRYZHAND_TITLES",        "libryazhahand Titles"},
+        {&LIBRYZHAND_VERSIONS,      "LIBRYZHAND_VERSIONS",      "libryazhahand Versions"},
+        // Backports из vendored Ryzhand-Overlay.
+        {&TXT_READER,                 "TXT_READER",                 "TXT Reader"},
+        {&NO_TXT_FILES_FOUND,         "NO_TXT_FILES_FOUND",         "No TXT files found"},
+        {&TEXT_COLOR,                 "TEXT_COLOR",                 "Text Color"},
+        {&TEXT_COLOR_PICKER_HINT,     "TEXT_COLOR_PICKER_HINT",     "Left/Right: channel  Up/Down: +/-1  L/R: +/-10  A: Save  B: Back"},
+        {&UPDATE_LANGUAGES,           "UPDATE_LANGUAGES",           "Update Languages"},
+        {&EXTERNAL_NOTIFICATIONS,     "EXTERNAL_NOTIFICATIONS",     "External Notifications"},
+        {&STAIRCASE_EFFECT,           "STAIRCASE_EFFECT",           "Staircase Effect"},
+        {&SOUND_EFFECTS,              "SOUND_EFFECTS",              "Sound Effects"},
+        {&SOUND_NAVIGATION,           "SOUND_NAVIGATION",           "Navigation sound"},
+        {&SOUND_ENTER,                "SOUND_ENTER",                "Confirm sound"},
+        {&SOUND_EXIT,                 "SOUND_EXIT",                 "Cancel sound"},
+        {&SOUND_WALL,                 "SOUND_WALL",                 "Wall sound"},
+        {&USERGUIDE_OFFSET,           "USERGUIDE_OFFSET",           "177"},
         {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
-        {&ULTRAHAND_HAS_STARTED,      "ULTRAHAND_HAS_STARTED",      "Ultrahand has started."},
-        {&ULTRAHAND_HAS_RESTARTED,    "ULTRAHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
+        {&RYZHAND_HAS_STARTED,      "RYZHAND_HAS_STARTED",      "Ultrahand has started."},
+        {&RYZHAND_HAS_RESTARTED,    "RYZHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
         {&NEW_UPDATE_IS_AVAILABLE,    "NEW_UPDATE_IS_AVAILABLE",    "New update is available!"},
         {&DELETE_PACKAGE,             "DELETE_PACKAGE",             "Delete Package"},
         {&DELETE_OVERLAY,             "DELETE_OVERLAY",             "Delete Overlay"},
@@ -734,7 +786,6 @@ namespace ult {
         #endif
 
         {&INCOMPATIBLE_WARNING,       "INCOMPATIBLE_WARNING",       "Incompatible on AMS v1.10+"},
-        {&OVERLAY_DOES_NOT_EXIST,     "OVERLAY_DOES_NOT_EXIST",     "Overlay does not exist!"},
         {&SYSTEM_RAM,                 "SYSTEM_RAM",                 "System RAM"},
         {&FREE,                       "FREE",                       "free"},
         {&UNAVAILABLE_SELECTION,      "UNAVAILABLE_SELECTION",      "Not available"},
@@ -873,22 +924,26 @@ namespace ult {
     std::mutex wallpaperMutex;
     std::condition_variable cv;
     
+    // Raw RGBA8888 файл -> RGBA4444. Используется tesla.cpp'ом для
+    // notification icons (32×32 raw .rgba файлы под NOTIFICATIONS_ICONS_PATH).
+    // Wallpaper больше не использует этот формат -- юзер кладёт *.png,
+    // libpng декодирует в loadWallpaperFile ниже.
     bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize) {
-        FILE* f = fopen(filePath.c_str(), "rb");
+        FILE* f = std::fopen(filePath.c_str(), "rb");
         if (!f) return false;
-    
+
         const uint8x8_t mask = vdup_n_u8(0xF0);
         constexpr size_t chunkBytes = 128 * 1024;
         uint8_t chunkBuffer[chunkBytes];
         size_t totalRead = 0;
-    
-        setvbuf(f, nullptr, _IOFBF, chunkBytes);
-    
+
+        std::setvbuf(f, nullptr, _IOFBF, chunkBytes);
+
         while (totalRead < srcSize) {
             const size_t toRead = std::min(srcSize - totalRead, chunkBytes);
-            const size_t bytesRead = fread(chunkBuffer, 1, toRead, f);
-            if (bytesRead == 0) { fclose(f); return false; }
-    
+            const size_t bytesRead = std::fread(chunkBuffer, 1, toRead, f);
+            if (bytesRead == 0) { std::fclose(f); return false; }
+
             const uint8_t* src = chunkBuffer;
             size_t i = 0;
             for (; i + 16 <= bytesRead; i += 16) {
@@ -899,21 +954,122 @@ namespace ult {
             }
             for (; i + 1 < bytesRead; i += 2)
                 *dst++ = (src[i] & 0xF0) | (src[i+1] >> 4);
-    
+
             totalRead += bytesRead;
         }
-    
-        fclose(f);
+
+        std::fclose(f);
         return true;
     }
 
-    
+    // Утиль: пакует RGBA8888-строку (width пикселей) в RGBA4444 in-place
+    // в выходной буфер dst (width*2 байт). NEON-ускоренный путь для блоков
+    // по 16 байт, fallback на скаляр для хвоста.
+    static void packRGBA8888toRGBA4444Row(const u8* src, u8* dst, size_t width) {
+        const uint8x8_t mask = vdup_n_u8(0xF0);
+        const size_t srcBytes = width * 4;
+        size_t i = 0;
+        for (; i + 16 <= srcBytes; i += 16) {
+            uint8x16_t data = vld1q_u8(src + i);
+            uint8x8x2_t sep = vuzp_u8(vget_low_u8(data), vget_high_u8(data));
+            vst1_u8(dst, vorr_u8(vand_u8(sep.val[0], mask), vshr_n_u8(sep.val[1], 4)));
+            dst += 8;
+        }
+        for (; i + 1 < srcBytes; i += 2)
+            *dst++ = (src[i] & 0xF0) | (src[i+1] >> 4);
+    }
+
+    // Decode PNG -> RGBA4444 buffer for tesla wallpaper renderer.
+    // Поддерживает RGB/RGBA/grayscale/palette + transparency. Масштабирует
+    // 16-bit-per-channel в 8-bit, разворачивает интерлейс. Если PNG-размеры
+    // не совпадают с (width × height), доступная область crop'ится из
+    // верхнего-левого угла, остальное оставляется черным/прозрачным.
+    //
+    // Заменил предыдущий raw-RGBA reader. Старый формат wallpaper.rgba
+    // (1290240 байт raw 448x720) больше не поддерживается -- если user
+    // ещё держит .rgba файл, переименуйте в .png через ImageMagick:
+    //     convert wallpaper.rgba -depth 8 -size 448x720 RGBA wallpaper.png
+    static bool loadPngToRGBA4444(const std::string& filePath, u8* dst,
+                                  s32 outWidth, s32 outHeight) {
+        FILE* f = std::fopen(filePath.c_str(), "rb");
+        if (!f) return false;
+
+        unsigned char sig[8];
+        if (std::fread(sig, 1, 8, f) != 8 || png_sig_cmp(sig, 0, 8)) {
+            std::fclose(f);
+            return false;
+        }
+
+        png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+        if (!png) { std::fclose(f); return false; }
+        png_infop info = png_create_info_struct(png);
+        if (!info) {
+            png_destroy_read_struct(&png, nullptr, nullptr);
+            std::fclose(f);
+            return false;
+        }
+        if (setjmp(png_jmpbuf(png))) {
+            png_destroy_read_struct(&png, &info, nullptr);
+            std::fclose(f);
+            return false;
+        }
+
+        png_init_io(png, f);
+        png_set_sig_bytes(png, 8);
+        png_read_info(png, info);
+
+        png_uint_32 w = png_get_image_width(png, info);
+        png_uint_32 h = png_get_image_height(png, info);
+        png_byte    colorType = png_get_color_type(png, info);
+        png_byte    bitDepth  = png_get_bit_depth(png, info);
+
+        // Нормализуем всё в RGBA8888 на чтении.
+        if (bitDepth == 16)                              png_set_strip_16(png);
+        if (colorType == PNG_COLOR_TYPE_PALETTE)         png_set_palette_to_rgb(png);
+        if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8) png_set_expand_gray_1_2_4_to_8(png);
+        if (png_get_valid(png, info, PNG_INFO_tRNS))     png_set_tRNS_to_alpha(png);
+        if (colorType == PNG_COLOR_TYPE_RGB ||
+            colorType == PNG_COLOR_TYPE_GRAY ||
+            colorType == PNG_COLOR_TYPE_PALETTE)
+            png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
+        if (colorType == PNG_COLOR_TYPE_GRAY ||
+            colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
+            png_set_gray_to_rgb(png);
+
+        png_read_update_info(png, info);
+
+        const size_t rowBytes = png_get_rowbytes(png, info);   // = w*4 после filler
+        std::vector<u8> rowBuf(rowBytes);
+
+        // Пакуем построчно сразу в RGBA4444 dst. Если PNG шире/уже target --
+        // crop/zero-pad по строке.
+        const size_t copyW = std::min<size_t>(w, (size_t)outWidth);
+        const size_t outRowBytes = (size_t)outWidth * 2;  // RGBA4444 = 2 байта/пиксель
+
+        // Сначала zero-fill всего dst, чтобы недостающие строки/края остались
+        // чёрными прозрачными.
+        std::memset(dst, 0, (size_t)outWidth * (size_t)outHeight * 2);
+
+        for (png_uint_32 y = 0; y < h && (s32)y < outHeight; ++y) {
+            png_read_row(png, rowBuf.data(), nullptr);
+            // Если src-row уже = outWidth -- пакуем напрямую. Иначе crop.
+            packRGBA8888toRGBA4444Row(rowBuf.data(), dst + (size_t)y * outRowBytes, copyW);
+        }
+
+        png_read_end(png, nullptr);
+        png_destroy_read_struct(&png, &info, nullptr);
+        std::fclose(f);
+        return true;
+    }
+
+    // Public entry: загрузить wallpaper.png в wallpaperData (RGBA4444 packed).
+    // На IO/decode error -- очищает буфер (рендер тогда покажет default bg).
     void loadWallpaperFile(const std::string& filePath, s32 width, s32 height) {
-        const size_t srcSize = width * height * 4;
-        wallpaperData.resize(srcSize / 2);
+        wallpaperData.resize((size_t)width * (size_t)height * 2);
         if (!isFile(filePath) ||
-            !loadRGBA8888toRGBA4444(filePath, wallpaperData.data(), srcSize))
+            !loadPngToRGBA4444(filePath, wallpaperData.data(), width, height)) {
             wallpaperData.clear();
+        }
     }
     
 
@@ -1187,7 +1343,7 @@ namespace ult {
     #if IS_LAUNCHER_DIRECTIVE
     void reinitializeWidgetVars() {
         // Load INI data once instead of 8 separate file reads
-        auto ultrahandSection = getKeyValuePairsFromSection(ULTRAHAND_CONFIG_INI_PATH, ULTRAHAND_PROJECT_NAME);
+        auto ultrahandSection = getKeyValuePairsFromSection(RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME);
         
         hideClock             = getBoolFromSection(ultrahandSection, "hide_clock",               false);
         hideBattery           = getBoolFromSection(ultrahandSection, "hide_battery",             true);
@@ -1201,7 +1357,7 @@ namespace ult {
     }
     #endif
     
-    bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibultrahandTitles, useLibultrahandVersions, usePackageTitles, usePackageVersions;
+    bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibryazhahandTitles, useLibryazhahandVersions, usePackageTitles, usePackageVersions;
     
 
 
@@ -1338,13 +1494,85 @@ namespace ult {
     bool expandedMemory = false;
     bool furtherExpandedMemory = false;
     bool limitedMemory = false;
+
+    // ───── Default theme settings ─────────────────────────────────────
+    // Backported из vendored Ryzhand-Overlay -- набор дефолтных цветов
+    // темы, который overlay-launcher применяет при init темы.
+    std::map<const std::string, std::string> defaultThemeSettingsMap = {
+        {"default_overlay_color", whiteColor},
+        {"default_package_color", whiteColor},
+        {"default_script_color", "FF33FF"},
+        {"clock_color", whiteColor},
+        {"temperature_color", whiteColor},
+        {"battery_color", "ffff45"},
+        {"battery_charging_color", "00FF00"},
+        {"battery_low_color", "FF0000"},
+        {"widget_backdrop_alpha", "15"},
+        {"widget_backdrop_color", blackColor},
+        {"bg_alpha", "13"},
+        {"bg_color", blackColor},
+        {"separator_alpha", "15"},
+        {"separator_color", "404040"},
+        {"text_separator_color", "404040"},
+        {"text_color", whiteColor},
+        {"notification_text_color", whiteColor},
+        {"header_text_color", whiteColor},
+        {"header_separator_color", whiteColor},
+        {"star_color", whiteColor},
+        {"selection_star_color", whiteColor},
+        {"bottom_button_color", whiteColor},
+        {"bottom_text_color", whiteColor},
+        {"bottom_separator_color", whiteColor},
+        {"top_separator_color", "404040"},
+        {"table_bg_color", "2C2C2C"},
+        {"table_bg_alpha", "14"},
+        {"table_section_text_color", whiteColor},
+        {"table_info_text_color", "9ed0ff"},
+        {"warning_text_color", "FF7777"},
+        {"healthy_ram_text_color", "00FF00"},
+        {"neutral_ram_text_color", "FFAA00"},
+        {"bad_ram_text_color", "FF0000"},
+        {"trackbar_slider_color", "606060"},
+        {"trackbar_slider_border_color", "505050"},
+        {"trackbar_slider_malleable_color", "A0A0A0"},
+        {"dynamic_logo_color_1", "00E669"},
+        {"dynamic_logo_color_2", "8080EA"}
+    };
+
+    // ───── Wallpaper color filter state + helpers ──────────────────────
+    std::atomic<int> wallpaperColorFilter(0);   // 0=none, 1=red, 2=green, 3=blue, 4=sepia, 5=invert
+
+    void nextWallpaperFilter() {
+        int current = wallpaperColorFilter.load();
+        wallpaperColorFilter.store((current + 1) % 6);
+    }
+
+    void setWallpaperFilter(int filterType) {
+        if (filterType >= 0 && filterType <= 5) {
+            wallpaperColorFilter.store(filterType);
+        }
+    }
+
+    void loadWallpaperFilterSettings() {
+        // Читаем 0..5 из config.ini, валидируем. Невалидное / отсутствующее
+        // значение оставляет filter = 0.
+        std::string filterStr = parseValueFromIniSection(
+            RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME, "wallpaper_color_filter");
+        if (filterStr.empty()) return;
+        int filter = 0;
+        for (char c : filterStr) {
+            if (c < '0' || c > '9') return;
+            filter = filter * 10 + (c - '0');
+        }
+        if (filter >= 0 && filter <= 5) wallpaperColorFilter.store(filter);
+    }
     
     std::string versionLabel;
     
     #if IS_LAUNCHER_DIRECTIVE
     void reinitializeVersionLabels() {
         // Load INI data once instead of 6 separate file reads
-        auto ultrahandSection = getKeyValuePairsFromSection(ULTRAHAND_CONFIG_INI_PATH, ULTRAHAND_PROJECT_NAME);
+        auto ultrahandSection = getKeyValuePairsFromSection(RYZHAND_CONFIG_INI_PATH, RYZHAND_PROJECT_NAME);
         
         cleanVersionLabels  = getBoolFromSection(ultrahandSection, "clean_version_labels",  false);
         hideOverlayVersions = getBoolFromSection(ultrahandSection, "hide_overlay_versions", false);

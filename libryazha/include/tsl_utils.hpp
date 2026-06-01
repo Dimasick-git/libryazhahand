@@ -2,7 +2,7 @@
  * File: tsl_utils.hpp
  * Author: ppkantorski
  * Description: 
- *   'tsl_utils.hpp' is a central utility header for the RyazhaHand Overlay project,
+ *   'tsl_utils.hpp' is a central utility header for the Ultrahand Overlay project,
  *   containing a variety of functions and definitions related to system status,
  *   input handling, and application-specific behavior on the Nintendo Switch.
  *   This header provides essential utilities for interacting with the system,
@@ -25,7 +25,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <ultra.hpp>
+#include <ryz.hpp>
 #include <switch.h>
 #include <arm_neon.h>
 
@@ -107,6 +107,9 @@ namespace ult {
     //extern bool isLauncher;
     extern std::atomic<bool> internalTouchReleased;
     extern u32 layerEdge;
+
+    // (Объявление holdDurationMs переехало ниже -- u64, с PR #309 backport.
+    // Старая u32-версия удалена; conflict с дубликатом ломал сборку.)
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
     extern bool useLaunchCombos;
@@ -117,6 +120,22 @@ namespace ult {
     extern bool useStartupNotification;
     extern bool silenceNotifications;
     extern bool useSoundEffects;
+
+    // Per-event sound toggles. Раньше был только общий useSoundEffects --
+    // "всё или ничего". Эти флаги позволяют гасить отдельные категории
+    // звуков. Все по умолчанию = true; downstream-overlay'и подключают
+    // их к UI как угодно.
+    extern bool useNavigationSound;
+    extern bool useEnterSound;
+    extern bool useExitSound;
+    extern bool useWallSound;
+
+    // PR #309 backport: настраиваемая длительность hold-press для confirm
+    // действий. processHold в overlay-main делит elapsed на это
+    // значение, чтобы получить процент прогресса. Default 4000 = 4 сек
+    // (как было захардкожено раньше). Диапазон 500-5000 мс задаётся в
+    // UI overlay'я (Settings -> Input -> Hold Time).
+    extern u64 holdDurationMs;
     extern bool useHapticFeedback;
     extern bool useAutoNTPSync;
     extern bool usePageSwap;
@@ -312,6 +331,8 @@ namespace ult {
     extern std::string FAVORITE;
     extern std::string MAIN_SETTINGS;
     extern std::string UI_SETTINGS;
+    extern std::string INPUT;      // libultrahand#16: Input settings category
+    extern std::string HOLD_TIME;  // libultrahand#16: long-press duration label
 
     extern std::string WIDGET;
     extern std::string WIDGET_ITEMS;
@@ -346,7 +367,7 @@ namespace ult {
     extern std::string LANGUAGE;
     extern std::string OVERLAY_INFO;
     extern std::string SOFTWARE_UPDATE;
-    extern std::string UPDATE_ULTRAHAND;
+    extern std::string UPDATE_RYZHAND;
     extern std::string SYSTEM;
     extern std::string DEVICE_INFO;
     extern std::string FIRMWARE;
@@ -360,14 +381,14 @@ namespace ult {
     extern std::string OVERLAY_MEMORY;
     extern std::string NOT_ENOUGH_MEMORY;
     extern std::string WALLPAPER_SUPPORT_DISABLED;
-    //extern std::string SOUND_SUPPORT_DISABLED;
+    extern std::string SOUND_SUPPORT_DISABLED;
     extern std::string WALLPAPER_SUPPORT_ENABLED;
     extern std::string SOUND_SUPPORT_ENABLED;
     extern std::string EXIT_OVERLAY_SYSTEM;
 
-    extern std::string ULTRAHAND_ABOUT;
-    extern std::string ULTRAHAND_CREDITS_START;
-    extern std::string ULTRAHAND_CREDITS_END;
+    extern std::string RYZHAND_ABOUT;
+    extern std::string RYZHAND_CREDITS_START;
+    extern std::string RYZHAND_CREDITS_END;
 
     extern std::string LOCAL_IP;
     extern std::string WALLPAPER;
@@ -419,12 +440,28 @@ namespace ult {
     extern std::string SELECTION_BACKGROUND;
     extern std::string SELECTION_TEXT;
     extern std::string SELECTION_VALUE;
-    extern std::string LIBULTRAHAND_TITLES;
-    extern std::string LIBULTRAHAND_VERSIONS;
+    extern std::string LIBRYZHAND_TITLES;
+    extern std::string LIBRYZHAND_VERSIONS;
     extern std::string PACKAGE_TITLES;
 
-    extern std::string ULTRAHAND_HAS_STARTED;
-    extern std::string ULTRAHAND_HAS_RESTARTED;
+    // Backported из vendored Ryzhand-Overlay -- TXT-читалка + UI-настройки
+    // которые добавлялись там и были недоступны в base libryazhahand.
+    extern std::string TXT_READER;
+    extern std::string NO_TXT_FILES_FOUND;
+    extern std::string TEXT_COLOR;
+    extern std::string TEXT_COLOR_PICKER_HINT;
+    extern std::string UPDATE_LANGUAGES;
+    extern std::string EXTERNAL_NOTIFICATIONS;
+    extern std::string STAIRCASE_EFFECT;
+    extern std::string SOUND_EFFECTS;
+    extern std::string SOUND_NAVIGATION;
+    extern std::string SOUND_ENTER;
+    extern std::string SOUND_EXIT;
+    extern std::string SOUND_WALL;
+    extern std::string USERGUIDE_OFFSET;
+
+    extern std::string RYZHAND_HAS_STARTED;
+    extern std::string RYZHAND_HAS_RESTARTED;
     extern std::string NEW_UPDATE_IS_AVAILABLE;
 
     extern std::string DELETE_PACKAGE;
@@ -442,7 +479,6 @@ namespace ult {
     #endif
 
     extern std::string INCOMPATIBLE_WARNING;
-    extern std::string OVERLAY_DOES_NOT_EXIST;
     extern std::string SYSTEM_RAM;
     extern std::string FREE;
     
@@ -539,8 +575,16 @@ namespace ult {
     
     
     
-    // Function to load the RGBA file into memory and modify wallpaperData directly
+    // Raw RGBA8888 file -> packed RGBA4444. Используется для маленьких
+    // фиксированного размера иконок (notification icons -- 32×32 .rgba)
+    // где имеет смысл хранить уже-готовый raw-формат вместо PNG.
+    // Wallpaper использует другую функцию loadWallpaperFile (PNG).
     bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize);
+
+    // Load PNG wallpaper -> wallpaperData (RGBA4444). Реализация в .cpp
+    // через libpng. Поддерживает RGB/RGBA/grayscale/palette + tRNS,
+    // 8/16-bit depth, произвольное разрешение (nearest-neighbor scale
+    // в 448×720).
     void loadWallpaperFile(const std::string& filePath, s32 width = 448, s32 height = 720);
     void loadWallpaperFileWhenSafe();
 
@@ -548,6 +592,19 @@ namespace ult {
     
     
     extern std::atomic<bool> themeIsInitialized;
+
+    // ───── Default theme settings ─────────────────────────────────────
+    // Канонический набор всех theme-keys с дефолтными цветами. Используется
+    // overlay'ями для init темы при первом запуске (initializeTheme).
+    // Backported из vendored Ryzhand-Overlay.
+    extern std::map<const std::string, std::string> defaultThemeSettingsMap;
+
+    // ───── Wallpaper color-filter API ─────────────────────────────────
+    // 0=none, 1=red, 2=green, 3=blue, 4=sepia, 5=invert.
+    extern std::atomic<int> wallpaperColorFilter;
+    void nextWallpaperFilter();
+    void setWallpaperFilter(int filterType);
+    void loadWallpaperFilterSettings();
 
     // Variables for touch commands
     extern std::atomic<bool> touchingBack;
@@ -625,7 +682,7 @@ namespace ult {
     void reinitializeWidgetVars();
     #endif
     
-    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibultrahandTitles, useLibultrahandVersions, usePackageTitles, usePackageVersions;
+    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibryazhahandTitles, useLibryazhahandVersions, usePackageTitles, usePackageVersions;
     
 
 
