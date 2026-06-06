@@ -82,16 +82,26 @@ namespace ult {
         // engine полностью awake, последующие audoutPlayBuffer возвращают
         // в течение реального duration WAV'а (10-30ms), juzer слышит
         // звук сразу после нажатия.
-        if (m_playBuf && m_playBufCap > 0) {
-            const uint32_t primeBytes = std::min<uint32_t>(m_playBufCap, AUDIO_ALIGN);
-            std::memset(m_playBuf, 0, primeBytes);
-            AudioOutBuffer prime = {};
-            prime.buffer      = m_playBuf;
-            prime.buffer_size = primeBytes;
-            prime.data_size   = primeBytes;
-            prime.data_offset = 0;
-            AudioOutBuffer* rel = nullptr;
-            audoutPlayBuffer(&prime, &rel);
+        // ВАЖНО: prime НЕ должен зависеть от m_playBuf. Ryazha распаковывает
+        // WAV'ы в .loaded_sounds/ лениво (reloadSoundCacheNow на sound-треде),
+        // поэтому на момент initialize() звуки ещё НЕ загружены и m_playBuf == null.
+        // Старый prime под `if (m_playBuf ...)` просто пропускался -> прогрев не
+        // случался -> ПЕРВЫЙ слышимый клик съедал ~300ms latency и звучал на
+        // следующем нажатии (классический off-by-one). Отдельный throwaway-буфер
+        // гарантирует прогрев pipeline всегда, ещё до первого клика.
+        {
+            void* primeBuf = aligned_alloc(AUDIO_ALIGN, AUDIO_ALIGN);
+            if (primeBuf) {
+                std::memset(primeBuf, 0, AUDIO_ALIGN);
+                AudioOutBuffer prime = {};
+                prime.buffer      = primeBuf;
+                prime.buffer_size = AUDIO_ALIGN;
+                prime.data_size   = AUDIO_ALIGN;
+                prime.data_offset = 0;
+                AudioOutBuffer* rel = nullptr;
+                audoutPlayBuffer(&prime, &rel);   // блокирующий — съедает wake-latency здесь
+                free(primeBuf);
+            }
         }
 
         return true;
