@@ -12223,7 +12223,7 @@ namespace tsl {
     
     namespace impl {
         static constexpr const char* TESLA_CONFIG_FILE = "/config/tesla/config.ini";
-        static constexpr const char* RYZHAND_CONFIG_FILE = "/config/ultrahand/config.ini";
+        static constexpr const char* RYZHAND_CONFIG_FILE = "/config/ryazhahand/config.ini";
         
         /**
          * @brief Data shared between the different ult::renderThreads
@@ -13076,7 +13076,7 @@ namespace tsl {
                             {
                                 // Write current tick so sysmodules can compare against their
                                 // own tid-change tick to detect HOME pressed during loading.
-                                FILE* f = fopen("/config/ultrahand/flags/HOME_EVENT.flag", "w");
+                                FILE* f = fopen("/config/ryazhahand/flags/HOME_EVENT.flag", "w");
                                 if (f) {
                                     fprintf(f, "%016llX", (unsigned long long)svcGetSystemTick());
                                     fclose(f);
