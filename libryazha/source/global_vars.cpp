@@ -100,13 +100,13 @@ namespace ult {
     };
 
     // GitHub URLs
-    const std::string GITHUB_BASE_URL               = "https://github.com/ppkantorski/";
-    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/ppkantorski/";
-    const std::string RYZHAND_REPO_URL            = GITHUB_BASE_URL + "Ultrahand-Overlay/";
-    const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/themes/";
-    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/RELEASE.ini";
+    const std::string GITHUB_BASE_URL               = "https://github.com/Dimasick-git/";
+    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/Dimasick-git/";
+    const std::string RYZHAND_REPO_URL            = GITHUB_BASE_URL + "Ryazhahand-Overlay/";
+    const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/themes/";
+    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/RELEASE.ini";
     const std::string LATEST_UPDATER_INI_URL        = RYZHAND_REPO_URL + "releases/latest/download/update.ini";
-    const std::string UPDATER_PAYLOAD_URL           = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/payloads/ultrahand_updater.bin";
+    const std::string UPDATER_PAYLOAD_URL           = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/payloads/ryazhahand_updater.bin";
 
     // Launch options
     const std::string LAUNCH_ARGS_STR       = "launch_args";
