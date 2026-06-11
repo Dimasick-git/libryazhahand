@@ -2,9 +2,8 @@ name: Sync from libultrahand upstream
 
 on:
   schedule:
-    # Запуск ежедневно в 05:00 UTC (на час позже HOC-синка RCU,
-    # чтобы не конкурировать за rate-limit GitHub).
-    - cron: '0 5 * * *'
+    # Каждые 6 часов: автосинк с 3-way merge кастомных файлов.
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
 
     steps:
       - name: Checkout libryazhahand
@@ -35,21 +35,66 @@ jobs:
           git config user.name "ryazha-sync[bot]"
           git config user.email "ryazha-sync[bot]@users.noreply.github.com"
 
-      - name: Run upstream sync
+      - name: Run upstream sync (3-way merge)
+        id: sync
         run: |
+          set +e
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python3 scripts/sync_from_upstream.py --dry-run
           else
             python3 scripts/sync_from_upstream.py
           fi
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          AHEAD=$(git rev-list --count origin/main..HEAD)
+          echo "ahead=$AHEAD" >> "$GITHUB_OUTPUT"
+          # rc=2 (конфликт) обрабатываем отдельным шагом; прочие ошибки валят job
+          [ "$rc" = "0" ] || [ "$rc" = "2" ] || exit "$rc"
+
+      - name: Syntax-check lib sources (devkitA64)
+        # Компилируем ИСТОЧНИКИ либы (example их не покрывает!) -- ловим
+        # битые идентификаторы/синтаксис до того, как они уедут в main.
+        if: steps.sync.outputs.rc == '0' && steps.sync.outputs.ahead != '0'
+        run: |
+          docker run --rm -v "$PWD":/src -w /src devkitpro/devkita64:20251231 bash -ec '
+            DKP=/opt/devkitpro
+            CXX=$DKP/devkitA64/bin/aarch64-none-elf-g++
+            INC="-I/src/libryazha/include -I/src/libtesla/include \
+                 -I$DKP/libnx/include -I$DKP/portlibs/switch/include"
+            FLAGS="-std=c++26 -D__SWITCH__ -fno-exceptions -fno-rtti -fsyntax-only -Wno-dangling-else"
+            for f in libryazha/source/*.cpp libtesla/source/*.cpp; do
+              echo "syntax-check: $f"
+              $CXX $FLAGS $INC "$f"
+            done
+          '
 
       - name: Push changes
-        if: github.event.inputs.dry_run != 'true'
+        if: github.event.inputs.dry_run != 'true' && steps.sync.outputs.rc == '0' && steps.sync.outputs.ahead != '0'
         run: |
-          AHEAD=$(git rev-list --count origin/main..HEAD)
-          if [ "$AHEAD" -gt 0 ]; then
-            echo "Pushing $AHEAD new commit(s)"
-            git push origin HEAD:main
+          echo "Pushing ${{ steps.sync.outputs.ahead }} new commit(s)"
+          git push origin HEAD:main
+
+      - name: Open issue on merge conflict
+        if: steps.sync.outputs.rc == '2'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="upstream-sync: конфликт 3-way merge ($(date -u +%F))"
+          EXISTING=$(gh issue list --state open --search "upstream-sync: конфликт" --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create --title "$TITLE" --body \
+              "Автосинк libultrahand упёрся в конфликт в кастомных файлах (tesla.hpp / tsl_utils.*).
+          Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Разрулить вручную: \`python3 scripts/sync_from_upstream.py\` локально, поправить, запушить."
           else
-            echo "Nothing to push"
+            echo "Открытый issue уже есть — не дублирую."
           fi
+
+      - name: Open issue on syntax-check failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create --title "upstream-sync: сломан билд после синка ($(date -u +%F))" --body \
+            "Syntax-check исходников либы упал после автосинка — изменения НЕ запушены.
+          Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
