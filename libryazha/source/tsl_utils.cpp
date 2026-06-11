@@ -219,8 +219,8 @@ namespace ult {
     bool useRightAlignment = false;
     bool useSwipeToOpen = true;
     bool useLaunchCombos = true;
-    bool useLaunchRecall = true;
-    bool usePageRecall = true;
+    //bool useLaunchRecall = true;
+    //bool usePageRecall = true;
     bool useNotifications = true;
     bool useNotificationsHotkey = true;
     bool useStartupNotification = true;
@@ -239,6 +239,7 @@ namespace ult {
     u64 holdDurationMs = 4000;
     bool useHapticFeedback = false;
     bool useAutoNTPSync = true;
+    bool useStickNavigation = true;
     bool usePageSwap = false;
     bool useDynamicLogo = true;
     bool useSelectionBG = true;
@@ -437,18 +438,39 @@ namespace ult {
     std::string CENTER_ALIGNMENT;
     std::string EXTENDED_BACKDROP;
     std::string MISCELLANEOUS;
+
+    std::string INPUT_SETTINGS;
+    std::string LAUNCH_COMBOS;
+    std::string SWIPE_TO_OPEN;
+    std::string HAPTIC_FEEDBACK;
+    std::string STICK_NAVIGATION;
+    std::string HOLD_DURATION;
+
+    std::string FEATURE_SETTINGS;
+    std::string OPAQUE_SCREENSHOTS;
+    std::string RIGHT_SIDE_MODE;
+    std::string NTP_SYNC_DOWNLOADS;
+
     std::string MENU_SETTINGS;
-    std::string USER_GUIDE;
     std::string PACKAGES_MENU;
+    std::string USER_GUIDE;
     std::string SHOW_HIDDEN;
     std::string SHOW_DELETE;
     std::string SHOW_UNSUPPORTED;
     std::string PAGE_SWAP;
-    std::string PAGE_RECALL;
-    std::string RIGHT_SIDE_MODE;
     std::string OVERLAY_VERSIONS;
     std::string PACKAGE_VERSIONS;
     std::string CLEAN_VERSIONS;
+
+    std::string THEME_SETTINGS;
+    std::string DYNAMIC_LOGO;
+    std::string SELECTION_BACKGROUND;
+    std::string SELECTION_TEXT;
+    std::string SELECTION_VALUE;
+    std::string LIBULTRAHAND_TITLES;
+    std::string LIBULTRAHAND_VERSIONS;
+    std::string PACKAGE_TITLES;
+
     std::string KEY_COMBO;
     std::string MODE;
     std::string LAUNCH_MODES;
@@ -484,8 +506,7 @@ namespace ult {
     std::string SORT_PRIORITY;
     std::string OPTIONS;
     std::string FAILED_TO_OPEN;
-    std::string LAUNCH_COMBOS;
-    std::string LAUNCH_RECALL;
+
     std::string NOTIFICATIONS;
     std::string NOTIFICATION_SETTINGS;
     std::string SILENCE_NOTIFICATIONS;
@@ -499,9 +520,6 @@ namespace ult {
     std::string TAP;
     std::string HOLD_FOR_4S;
 
-    std::string HAPTIC_FEEDBACK;
-    std::string AUTO_NTP_SYNC;
-    std::string OPAQUE_SCREENSHOTS;
     std::string PACKAGE_INFO;
     std::string _TITLE;
     std::string _VERSION;
@@ -556,6 +574,7 @@ namespace ult {
     #endif
 
     std::string INCOMPATIBLE_WARNING;
+    std::string OVERLAY_DOES_NOT_EXIST;
     std::string SYSTEM_RAM;
     std::string FREE;
     std::string UNAVAILABLE_SELECTION;
@@ -669,18 +688,34 @@ namespace ult {
         {&CENTER_ALIGNMENT,           "CENTER_ALIGNMENT",           "Center Alignment"},
         {&EXTENDED_BACKDROP,          "EXTENDED_BACKDROP",          "Extended Backdrop"},
         {&MISCELLANEOUS,              "MISCELLANEOUS",              "Miscellaneous"},
+        {&INPUT_SETTINGS,             "INPUT_SETTINGS",             "Input Settings"},
+        {&LAUNCH_COMBOS,              "LAUNCH_COMBOS",              "Launch Combos"},
+        {&SWIPE_TO_OPEN,              "SWIPE_TO_OPEN",              "Swipe to Open"},
+        {&HAPTIC_FEEDBACK,            "HAPTIC_FEEDBACK",            "Haptic Feedback"},
+        {&STICK_NAVIGATION,           "STICK_NAVIGATION",           "Stick Navigation"},
+        {&HOLD_DURATION,              "HOLD_DURATION",              "Hold Duration"},
+        {&FEATURE_SETTINGS,           "FEATURE_SETTINGS",           "Feature Settings"},
+        {&OPAQUE_SCREENSHOTS,         "OPAQUE_SCREENSHOTS",         "Opaque Screenshots"},
+        {&RIGHT_SIDE_MODE,            "RIGHT_SIDE_MODE",            "Right-side Mode"},
+        {&NTP_SYNC_DOWNLOADS,         "NTP_SYNC_DOWNLOADS",         "NTP Sync Downloads"},
         {&MENU_SETTINGS,              "MENU_SETTINGS",              "Menu Settings"},
-        {&USER_GUIDE,                 "USER_GUIDE",                 "User Guide"},
         {&PACKAGES_MENU,              "PACKAGES_MENU",              "Packages Menu"},
+        {&USER_GUIDE,                 "USER_GUIDE",                 "User Guide"},
         {&SHOW_HIDDEN,                "SHOW_HIDDEN",                "Show Hidden"},
         {&SHOW_DELETE,                "SHOW_DELETE",                "Show Delete"},
         {&SHOW_UNSUPPORTED,           "SHOW_UNSUPPORTED",           "Show Unsupported"},
         {&PAGE_SWAP,                  "PAGE_SWAP",                  "Page Swap"},
-        {&PAGE_RECALL,                "PAGE_RECALL",                "Page Recall"},
-        {&RIGHT_SIDE_MODE,            "RIGHT_SIDE_MODE",            "Right-side Mode"},
         {&OVERLAY_VERSIONS,           "OVERLAY_VERSIONS",           "Overlay Versions"},
         {&PACKAGE_VERSIONS,           "PACKAGE_VERSIONS",           "Package Versions"},
         {&CLEAN_VERSIONS,             "CLEAN_VERSIONS",             "Clean Versions"},
+        {&THEME_SETTINGS,             "THEME_SETTINGS",             "Theme Settings"},
+        {&DYNAMIC_LOGO,               "DYNAMIC_LOGO",               "Dynamic Logo"},
+        {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
+        {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
+        {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
+        {&LIBULTRAHAND_TITLES,        "LIBULTRAHAND_TITLES",        "libultrahand Titles"},
+        {&LIBULTRAHAND_VERSIONS,      "LIBULTRAHAND_VERSIONS",      "libultrahand Versions"},
+        {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
         {&KEY_COMBO,                  "KEY_COMBO",                  "Key Combo"},
         {&MODE,                       "MODE",                       "Mode"},
         {&LAUNCH_MODES,               "LAUNCH_MODES",               "Launch Modes"},
@@ -716,8 +751,6 @@ namespace ult {
         {&SORT_PRIORITY,              "SORT_PRIORITY",              "Sort Priority"},
         {&OPTIONS,                    "OPTIONS",                    "Options"},
         {&FAILED_TO_OPEN,             "FAILED_TO_OPEN",             "Failed to open file"},
-        {&LAUNCH_COMBOS,              "LAUNCH_COMBOS",              "Launch Combos"},
-        {&LAUNCH_RECALL,              "LAUNCH_RECALL",              "Launch Recall"},
         {&NOTIFICATIONS,              "NOTIFICATIONS",              "Notifications"},
         {&NOTIFICATION_SETTINGS,      "NOTIFICATION_SETTINGS",      "Notification Settings"},
         {&SILENCE_NOTIFICATIONS,      "SILENCE_NOTIFICATIONS",      "Silence Notifications"},
@@ -730,9 +763,6 @@ namespace ult {
         {&CLICK,                      "CLICK",                      "click"},
         {&TAP,                        "TAP",                        "tap"},
         {&HOLD_FOR_4S,                "HOLD_FOR_4S",                "hold for 4s"},
-        {&HAPTIC_FEEDBACK,            "HAPTIC_FEEDBACK",            "Haptic Feedback"},
-        {&AUTO_NTP_SYNC,              "AUTO_NTP_SYNC",              "Auto NTP Sync"},
-        {&OPAQUE_SCREENSHOTS,         "OPAQUE_SCREENSHOTS",         "Opaque Screenshots"},
         {&PACKAGE_INFO,               "PACKAGE_INFO",               "Package Info"},
         {&_TITLE,                     "_TITLE",                     "Title"},
         {&_VERSION,                   "_VERSION",                   "Version"},
@@ -786,6 +816,7 @@ namespace ult {
         #endif
 
         {&INCOMPATIBLE_WARNING,       "INCOMPATIBLE_WARNING",       "Incompatible on AMS v1.10+"},
+        {&OVERLAY_DOES_NOT_EXIST,     "OVERLAY_DOES_NOT_EXIST",     "Overlay does not exist!"},
         {&SYSTEM_RAM,                 "SYSTEM_RAM",                 "System RAM"},
         {&FREE,                       "FREE",                       "free"},
         {&UNAVAILABLE_SELECTION,      "UNAVAILABLE_SELECTION",      "Not available"},
@@ -918,6 +949,7 @@ namespace ult {
     
     std::atomic<bool> refreshWallpaperNow(false);
     std::atomic<bool> refreshWallpaper(false);
+    std::atomic<bool> refreshCombos(false);
     std::vector<u8> wallpaperData; 
     std::atomic<bool> inPlot(false);
     

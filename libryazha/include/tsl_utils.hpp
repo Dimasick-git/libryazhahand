@@ -113,8 +113,8 @@ namespace ult {
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
     extern bool useLaunchCombos;
-    extern bool useLaunchRecall;
-    extern bool usePageRecall;
+    //extern bool useLaunchRecall;
+    //extern bool usePageRecall;
     extern bool useNotifications;
     extern bool useNotificationsHotkey;
     extern bool useStartupNotification;
@@ -138,6 +138,7 @@ namespace ult {
     extern u64 holdDurationMs;
     extern bool useHapticFeedback;
     extern bool useAutoNTPSync;
+    extern bool useStickNavigation;
     extern bool usePageSwap;
     extern std::atomic<bool> noClickableItems;
 
@@ -223,10 +224,10 @@ namespace ult {
     #define KEY_SR HidNpadButton_AnySR
     #define KEY_LSTICK HidNpadButton_StickL
     #define KEY_RSTICK HidNpadButton_StickR
-    #define KEY_UP HidNpadButton_AnyUp
-    #define KEY_DOWN HidNpadButton_AnyDown
-    #define KEY_LEFT HidNpadButton_AnyLeft
-    #define KEY_RIGHT HidNpadButton_AnyRight
+    #define KEY_UP    (ult::useStickNavigation ? HidNpadButton_AnyUp    : HidNpadButton_Up)
+    #define KEY_DOWN  (ult::useStickNavigation ? HidNpadButton_AnyDown  : HidNpadButton_Down)
+    #define KEY_LEFT  (ult::useStickNavigation ? HidNpadButton_AnyLeft  : HidNpadButton_Left)
+    #define KEY_RIGHT (ult::useStickNavigation ? HidNpadButton_AnyRight : HidNpadButton_Right)
     
     #define SCRIPT_KEY HidNpadButton_Minus
     #define SYSTEM_SETTINGS_KEY HidNpadButton_Plus
@@ -347,20 +348,39 @@ namespace ult {
     extern std::string CENTER_ALIGNMENT;
     extern std::string EXTENDED_BACKDROP;
     extern std::string MISCELLANEOUS;
+
+    extern std::string INPUT_SETTINGS;
+    extern std::string LAUNCH_COMBOS;
+    extern std::string SWIPE_TO_OPEN;
+    extern std::string HAPTIC_FEEDBACK;
+    extern std::string STICK_NAVIGATION;
+    extern std::string HOLD_DURATION;
+
+    extern std::string FEATURE_SETTINGS;
+    extern std::string OPAQUE_SCREENSHOTS;
+    extern std::string RIGHT_SIDE_MODE;
+    extern std::string NTP_SYNC_DOWNLOADS;
+
     extern std::string MENU_SETTINGS;
-    extern std::string USER_GUIDE;
     extern std::string PACKAGES_MENU;
+    extern std::string USER_GUIDE;
     extern std::string SHOW_HIDDEN;
     extern std::string SHOW_DELETE;
     extern std::string SHOW_UNSUPPORTED;
-
     extern std::string PAGE_SWAP;
-    extern std::string PAGE_RECALL;
-    extern std::string LAUNCH_RECALL;
-    extern std::string RIGHT_SIDE_MODE;
     extern std::string OVERLAY_VERSIONS;
     extern std::string PACKAGE_VERSIONS;
     extern std::string CLEAN_VERSIONS;
+
+    extern std::string THEME_SETTINGS;
+    extern std::string DYNAMIC_LOGO;
+    extern std::string SELECTION_BACKGROUND;
+    extern std::string SELECTION_TEXT;
+    extern std::string SELECTION_VALUE;
+    extern std::string LIBULTRAHAND_TITLES;
+    extern std::string LIBULTRAHAND_VERSIONS;
+    extern std::string PACKAGE_TITLES;
+
     extern std::string KEY_COMBO;
     extern std::string MODE;
     extern std::string LAUNCH_MODES;
@@ -400,7 +420,6 @@ namespace ult {
     extern std::string OPTIONS;
     extern std::string FAILED_TO_OPEN;
 
-    extern std::string LAUNCH_COMBOS;
     extern std::string NOTIFICATIONS;
     extern std::string NOTIFICATION_SETTINGS;
     extern std::string SILENCE_NOTIFICATIONS;
@@ -413,10 +432,6 @@ namespace ult {
     extern std::string CLICK;
     extern std::string TAP;
     extern std::string HOLD_FOR_4S;
-
-    extern std::string HAPTIC_FEEDBACK;
-    extern std::string AUTO_NTP_SYNC;
-    extern std::string OPAQUE_SCREENSHOTS;
 
     extern std::string PACKAGE_INFO;
     extern std::string _TITLE;
@@ -479,6 +494,7 @@ namespace ult {
     #endif
 
     extern std::string INCOMPATIBLE_WARNING;
+    extern std::string OVERLAY_DOES_NOT_EXIST;
     extern std::string SYSTEM_RAM;
     extern std::string FREE;
     
@@ -567,6 +583,7 @@ namespace ult {
     
     extern std::atomic<bool> refreshWallpaperNow;
     extern std::atomic<bool> refreshWallpaper;
+    extern std::atomic<bool> refreshCombos;
     extern std::vector<u8> wallpaperData;
     extern std::atomic<bool> inPlot;
     
