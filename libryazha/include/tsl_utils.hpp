@@ -112,7 +112,6 @@ namespace ult {
     // Старая u32-версия удалена; conflict с дубликатом ломал сборку.)
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
-    extern bool useStickNavigation; // upstream parity (stick_navigation)
     extern bool useLaunchCombos;
     //extern bool useLaunchRecall;
     //extern bool usePageRecall;
