@@ -218,6 +218,7 @@ namespace ult {
     // от PR #309 backport. Дубль ломал сборку.)
     bool useRightAlignment = false;
     bool useSwipeToOpen = true;
+    bool useStickNavigation = true; // upstream parity (stick_navigation)
     bool useLaunchCombos = true;
     //bool useLaunchRecall = true;
     //bool usePageRecall = true;
