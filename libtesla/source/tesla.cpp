@@ -644,7 +644,7 @@ namespace impl {
      */
     void parseOverlaySettings() {
         const auto section = ult::getKeyValuePairsFromSection(
-            ult::ULTRAHAND_CONFIG_INI_PATH, ult::ULTRAHAND_PROJECT_NAME);
+            ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME);
     
         auto getBool = [&](const char* key, bool def = false) -> bool {
             auto it = section.find(key);
@@ -1418,7 +1418,7 @@ void NotificationPrompt::drawSlot(gfx::Renderer* renderer, const Slot& slot,
             const s32 messageY = originY + titleFm.lineHeight + LINE_GAP + messageFm.ascent + 1+2;
 
             #if IS_LAUNCHER_DIRECTIVE
-            if (slot.data.title.find(ult::CAPITAL_ULTRAHAND_PROJECT_NAME) != std::string::npos)
+            if (slot.data.title.find(ult::CAPITAL_RYZHAND_PROJECT_NAME) != std::string::npos)
                 drawUltrahandLine(renderer, slot.data.title, titleTextAreaX, titleY, TITLE_FONT, fadeAlpha, notificationTitleColor);
             else {
             #endif
@@ -1477,10 +1477,10 @@ void NotificationPrompt::drawSlot(gfx::Renderer* renderer, const Slot& slot,
                 const s32          lineY = startY + li * lineStep;
 
                 #if IS_LAUNCHER_DIRECTIVE
-                const size_t up = line.find(ult::CAPITAL_ULTRAHAND_PROJECT_NAME);
+                const size_t up = line.find(ult::CAPITAL_RYZHAND_PROJECT_NAME);
                 if (up != std::string::npos) {
                     const std::string  before = line.substr(0, up);
-                    const std::string  after  = line.substr(up + ult::CAPITAL_ULTRAHAND_PROJECT_NAME.length());
+                    const std::string  after  = line.substr(up + ult::CAPITAL_RYZHAND_PROJECT_NAME.length());
                     const std::string& hand   = ult::SPLIT_PROJECT_NAME_2;
                     const s32 bw = before.empty() ? 0 : renderer->getNotificationTextDimensions(before, false, fontSize).first;
                     const s32 aw = after.empty()  ? 0 : renderer->getNotificationTextDimensions(after,  false, fontSize).first;
@@ -1513,7 +1513,7 @@ void NotificationPrompt::drawUltrahandLine(gfx::Renderer* renderer, const std::s
                                             s32 x, s32 y, u32 fontSize, float fadeAlpha,
                                             Color textColor) {
     auto fc = [&](Color c) { return applyAlpha(c, fadeAlpha); };
-    const size_t up = line.find(ult::CAPITAL_ULTRAHAND_PROJECT_NAME);
+    const size_t up = line.find(ult::CAPITAL_RYZHAND_PROJECT_NAME);
     if (up == std::string::npos) {
         const Color fadedSep = applyAlpha(separatorColor, fadeAlpha);
         renderer->drawNotificationString(line, false, x, y, fontSize, fc(textColor),
@@ -1522,7 +1522,7 @@ void NotificationPrompt::drawUltrahandLine(gfx::Renderer* renderer, const std::s
     }
     const std::string  before = line.substr(0, up);
     const std::string& hand   = ult::SPLIT_PROJECT_NAME_2;
-    const std::string  after  = line.substr(up + ult::CAPITAL_ULTRAHAND_PROJECT_NAME.length());
+    const std::string  after  = line.substr(up + ult::CAPITAL_RYZHAND_PROJECT_NAME.length());
     s32 bw = 0, hw = 0;
     if (!before.empty()) bw = renderer->getNotificationTextDimensions(before, false, fontSize).first;
     hw = renderer->getNotificationTextDimensions(hand, false, fontSize).first;

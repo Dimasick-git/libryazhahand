@@ -534,15 +534,11 @@ namespace ult {
     std::string ON_A_COMMAND;
     std::string ON_OVERLAY_PACKAGE;
     std::string FEATURES;
-    std::string SWIPE_TO_OPEN;
-    std::string THEME_SETTINGS;
-    std::string DYNAMIC_LOGO;
-    std::string SELECTION_BACKGROUND;
-    std::string SELECTION_TEXT;
-    std::string SELECTION_VALUE;
+    // SWIPE_TO_OPEN/THEME_SETTINGS/DYNAMIC_LOGO/SELECTION_*/PACKAGE_TITLES
+    // определены выше (upstream v2.4.5 перенёс их в новый блок) -- здесь
+    // остаются только наши форк-строки без дублей.
     std::string LIBRYZHAND_TITLES;
     std::string LIBRYZHAND_VERSIONS;
-    std::string PACKAGE_TITLES;
 
     // Backported из vendored Ryzhand-Overlay.
     std::string TXT_READER;
