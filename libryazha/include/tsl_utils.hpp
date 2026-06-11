@@ -377,8 +377,6 @@ namespace ult {
     extern std::string SELECTION_BACKGROUND;
     extern std::string SELECTION_TEXT;
     extern std::string SELECTION_VALUE;
-    extern std::string LIBULTRAHAND_TITLES;
-    extern std::string LIBULTRAHAND_VERSIONS;
     extern std::string PACKAGE_TITLES;
 
     extern std::string KEY_COMBO;
@@ -448,16 +446,10 @@ namespace ult {
     extern std::string ON_A_COMMAND;
     extern std::string ON_OVERLAY_PACKAGE;
     extern std::string FEATURES;
-    extern std::string SWIPE_TO_OPEN;
-
-    extern std::string THEME_SETTINGS;
-    extern std::string DYNAMIC_LOGO;
-    extern std::string SELECTION_BACKGROUND;
-    extern std::string SELECTION_TEXT;
-    extern std::string SELECTION_VALUE;
+    // SWIPE_TO_OPEN/THEME_SETTINGS/DYNAMIC_LOGO/SELECTION_*/PACKAGE_TITLES
+    // объявлены выше в upstream-блоке (v2.4.5) -- здесь только форк-строки.
     extern std::string LIBRYZHAND_TITLES;
     extern std::string LIBRYZHAND_VERSIONS;
-    extern std::string PACKAGE_TITLES;
 
     // Backported из vendored Ryzhand-Overlay -- TXT-читалка + UI-настройки
     // которые добавлялись там и были недоступны в base libryazhahand.

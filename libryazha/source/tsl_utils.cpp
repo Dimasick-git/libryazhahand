@@ -467,8 +467,6 @@ namespace ult {
     std::string SELECTION_BACKGROUND;
     std::string SELECTION_TEXT;
     std::string SELECTION_VALUE;
-    std::string LIBULTRAHAND_TITLES;
-    std::string LIBULTRAHAND_VERSIONS;
     std::string PACKAGE_TITLES;
 
     std::string KEY_COMBO;
@@ -709,8 +707,6 @@ namespace ult {
         {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
         {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
         {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
-        {&LIBULTRAHAND_TITLES,        "LIBULTRAHAND_TITLES",        "libultrahand Titles"},
-        {&LIBULTRAHAND_VERSIONS,      "LIBULTRAHAND_VERSIONS",      "libultrahand Versions"},
         {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
         {&KEY_COMBO,                  "KEY_COMBO",                  "Key Combo"},
         {&MODE,                       "MODE",                       "Mode"},
@@ -773,12 +769,8 @@ namespace ult {
         {&ON_A_COMMAND,               "ON_A_COMMAND",               "on a command"},
         {&ON_OVERLAY_PACKAGE,         "ON_OVERLAY_PACKAGE",         "on overlay/package"},
         {&FEATURES,                   "FEATURES",                   "Features"},
-        {&SWIPE_TO_OPEN,              "SWIPE_TO_OPEN",              "Swipe to Open"},
-        {&THEME_SETTINGS,             "THEME_SETTINGS",             "Theme Settings"},
-        {&DYNAMIC_LOGO,               "DYNAMIC_LOGO",               "Dynamic Logo"},
-        {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
-        {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
-        {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
+        // SWIPE_TO_OPEN/THEME_SETTINGS/DYNAMIC_LOGO/SELECTION_*/PACKAGE_TITLES --
+        // записи в upstream-части таблицы выше (v2.4.5), дубли убраны.
         {&LIBRYZHAND_TITLES,        "LIBRYZHAND_TITLES",        "libryazhahand Titles"},
         {&LIBRYZHAND_VERSIONS,      "LIBRYZHAND_VERSIONS",      "libryazhahand Versions"},
         // Backports из vendored Ryzhand-Overlay.
@@ -795,7 +787,6 @@ namespace ult {
         {&SOUND_EXIT,                 "SOUND_EXIT",                 "Cancel sound"},
         {&SOUND_WALL,                 "SOUND_WALL",                 "Wall sound"},
         {&USERGUIDE_OFFSET,           "USERGUIDE_OFFSET",           "177"},
-        {&PACKAGE_TITLES,             "PACKAGE_TITLES",             "Package Titles"},
         {&RYZHAND_HAS_STARTED,      "RYZHAND_HAS_STARTED",      "Ultrahand has started."},
         {&RYZHAND_HAS_RESTARTED,    "RYZHAND_HAS_RESTARTED",    "Ultrahand has restarted."},
         {&NEW_UPDATE_IS_AVAILABLE,    "NEW_UPDATE_IS_AVAILABLE",    "New update is available!"},
