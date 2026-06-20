@@ -241,7 +241,9 @@ namespace ult {
     bool useAutoNTPSync = true;
     bool useStickNavigation = true;
     bool usePageSwap = false;
+    bool useSwitch2Style = true;
     bool useDynamicLogo = true;
+    bool useDynamicTableColors = true;
     bool useSelectionBG = true;
     bool useSelectionText = true;
     bool useSelectionValue = false;
@@ -434,7 +436,8 @@ namespace ult {
     std::string PCB_TEMPERATURE;
     std::string BACKDROP;
     std::string BORDER;
-    std::string DYNAMIC_COLORS;
+    std::string DYNAMIC_BORDER;
+    std::string DYNAMIC_TEMPS;
     std::string CENTER_ALIGNMENT;
     std::string EXTENDED_BACKDROP;
     std::string MISCELLANEOUS;
@@ -463,7 +466,9 @@ namespace ult {
     std::string CLEAN_VERSIONS;
 
     std::string THEME_SETTINGS;
+    std::string SWITCH_2_STYLE;
     std::string DYNAMIC_LOGO;
+    std::string DYNAMIC_TABLES;
     std::string SELECTION_BACKGROUND;
     std::string SELECTION_TEXT;
     std::string SELECTION_VALUE;
@@ -565,6 +570,7 @@ namespace ult {
     std::string REBOOT;
     std::string SHUTDOWN;
     std::string BOOT_ENTRY;
+    std::string INI_ENTRY;
     #endif
 
     std::string INCOMPATIBLE_WARNING;
@@ -678,7 +684,8 @@ namespace ult {
         {&PCB_TEMPERATURE,            "PCB_TEMPERATURE",            "PCB Temperature"},
         {&BACKDROP,                   "BACKDROP",                   "Backdrop"},
         {&BORDER,                     "BORDER",                     "Border"},
-        {&DYNAMIC_COLORS,             "DYNAMIC_COLORS",             "Dynamic Colors"},
+        {&DYNAMIC_BORDER,             "DYNAMIC_BORDER",             "Dynamic Border"},
+        {&DYNAMIC_TEMPS,              "DYNAMIC_TEMPS",              "Dynamic Temps"},
         {&CENTER_ALIGNMENT,           "CENTER_ALIGNMENT",           "Center Alignment"},
         {&EXTENDED_BACKDROP,          "EXTENDED_BACKDROP",          "Extended Backdrop"},
         {&MISCELLANEOUS,              "MISCELLANEOUS",              "Miscellaneous"},
@@ -703,7 +710,9 @@ namespace ult {
         {&PACKAGE_VERSIONS,           "PACKAGE_VERSIONS",           "Package Versions"},
         {&CLEAN_VERSIONS,             "CLEAN_VERSIONS",             "Clean Versions"},
         {&THEME_SETTINGS,             "THEME_SETTINGS",             "Theme Settings"},
+        {&SWITCH_2_STYLE,             "SWITCH_2_STYLE",             "Switch 2 Style"},
         {&DYNAMIC_LOGO,               "DYNAMIC_LOGO",               "Dynamic Logo"},
+        {&DYNAMIC_TABLES,             "DYNAMIC_TABLES",             "Dynamic Tables"},
         {&SELECTION_BACKGROUND,       "SELECTION_BACKGROUND",       "Selection Background"},
         {&SELECTION_TEXT,             "SELECTION_TEXT",             "Selection Text"},
         {&SELECTION_VALUE,            "SELECTION_VALUE",            "Selection Value"},
@@ -800,6 +809,7 @@ namespace ult {
         {&REBOOT,                     "REBOOT",                     "Reboot"},
         {&SHUTDOWN,                   "SHUTDOWN",                   "Shutdown"},
         {&BOOT_ENTRY,                 "BOOT_ENTRY",                 "Boot Entry"},
+        {&INI_ENTRY,                  "INI_ENTRY",                  "INI Entry"},
         #endif
 
         {&INCOMPATIBLE_WARNING,       "INCOMPATIBLE_WARNING",       "Incompatible on AMS v1.10+"},
@@ -920,16 +930,25 @@ namespace ult {
             if (text.length() == 2 && text[0] == 'O' && text[1] == 'n') { text = ON; return; }
             if (text.length() == 3 && text[0] == 'O' && text[1] == 'f' && text[2] == 'f') { text = OFF; return; }
         }
-        #if IS_LAUNCHER_DIRECTIVE
+    #if IS_LAUNCHER_DIRECTIVE
         else {
             switch (text.length()) {
-                case 6:  if (text == "Reboot")    { text = REBOOT;    } break;
-                case 8:  if (text == "Shutdown")  { text = SHUTDOWN;  } break;
-                case 9:  if (text == "Reboot To") { text = REBOOT_TO; } break;
-                case 10: if (text == "Boot Entry"){ text = BOOT_ENTRY;} break;
+                case 6:
+                    if (text == "Reboot") { text = REBOOT; }
+                    break;
+                case 8:
+                    if (text == "Shutdown") { text = SHUTDOWN; }
+                    break;
+                case 9:
+                    if (text == "Reboot To") { text = REBOOT_TO; }
+                    else if (text == "INI Entry") { text = INI_ENTRY; }
+                    break;
+                case 10:
+                    if (text == "Boot Entry") { text = BOOT_ENTRY; }
+                    break;
             }
         }
-        #endif
+    #endif
     }
     
     
@@ -1349,7 +1368,7 @@ namespace ult {
     
     
     // Widget settings
-    bool hideClock, hideBattery, hidePCBTemp, hideSOCTemp, dynamicWidgetColors;
+    bool hideClock, hideBattery, hidePCBTemp, hideSOCTemp, dynamicWidgetColors, dynamicWidgetBorder;
     bool hideWidgetBackdrop, hideWidgetBorder, centerWidgetAlignment, extendedWidgetBackdrop;
 
     // Shared helper: single hash lookup instead of count() + at()
@@ -1369,6 +1388,7 @@ namespace ult {
         hideSOCTemp           = getBoolFromSection(ultrahandSection, "hide_soc_temp",            true);
         hidePCBTemp           = getBoolFromSection(ultrahandSection, "hide_pcb_temp",            true);
         dynamicWidgetColors   = getBoolFromSection(ultrahandSection, "dynamic_widget_colors",    true);
+        dynamicWidgetBorder   = getBoolFromSection(ultrahandSection, "dynamic_widget_border",    true);
         hideWidgetBackdrop    = getBoolFromSection(ultrahandSection, "hide_widget_backdrop",     false);
         hideWidgetBorder      = getBoolFromSection(ultrahandSection, "hide_widget_border",       false);
         centerWidgetAlignment = getBoolFromSection(ultrahandSection, "center_widget_alignment",  true);
