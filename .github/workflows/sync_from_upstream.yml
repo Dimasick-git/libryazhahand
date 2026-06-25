@@ -59,7 +59,7 @@ jobs:
           docker run --rm -v "$PWD":/src -w /src devkitpro/devkita64:20251231 bash -ec '
             DKP=/opt/devkitpro
             CXX=$DKP/devkitA64/bin/aarch64-none-elf-g++
-            INC="-I/src/libryazha/include -I/src/libtesla/include \
+            INC="-I/src/common -I/src/libryazha/include -I/src/libtesla/include \
                  -I$DKP/libnx/include -I$DKP/portlibs/switch/include"
             FLAGS="-std=c++26 -D__SWITCH__ -fno-exceptions -fno-rtti -fsyntax-only -Wno-dangling-else"
             for f in libryazha/source/*.cpp libtesla/source/*.cpp; do
