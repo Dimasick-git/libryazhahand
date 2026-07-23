@@ -3,7 +3,7 @@
  * Author: ppkantorski
  * Description: 
  *   This source file provides the definitions of global constants and paths used 
- *   throughout the RyazhaHand Overlay project. These constants are essential for 
+ *   throughout the Ultrahand Overlay project. These constants are essential for 
  *   file management and configuration settings within the application.
  *
  *   For the latest updates and contributions, visit the project's GitHub repository:
@@ -45,14 +45,14 @@ namespace ult {
     const std::string RELOADING_FLAG_FILENAME          = "RELOADING.flag";
 
     // Project names
-    CONSTEXPR_STRING std::string RYZHAND_PROJECT_NAME         = "ryazhahand";
-    CONSTEXPR_STRING std::string CAPITAL_RYZHAND_PROJECT_NAME = "RyazhaHand";
+    CONSTEXPR_STRING std::string ULTRAHAND_PROJECT_NAME         = "ryazhahand";
+    CONSTEXPR_STRING std::string CAPITAL_ULTRAHAND_PROJECT_NAME = "RyazhaHand";
     CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Ultra";
     CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "hand";
 
     // Paths
     const std::string SETTINGS_PATH               = BASE_CONFIG_PATH;
-    const std::string RYZHAND_CONFIG_INI_PATH   = BASE_CONFIG_PATH + CONFIG_FILENAME;
+    const std::string ULTRAHAND_CONFIG_INI_PATH   = BASE_CONFIG_PATH + CONFIG_FILENAME;
     const std::string TESLA_CONFIG_INI_PATH       = TESLA_CONFIG_PATH + CONFIG_FILENAME;
     const std::string LANG_PATH                   = BASE_CONFIG_PATH + "lang/";
     const std::string THEMES_PATH                 = BASE_CONFIG_PATH + "themes/";
@@ -77,7 +77,6 @@ namespace ult {
     const std::string NOTIFICATIONS_FLAG_FILEPATH = FLAGS_PATH + NOTIFICATIONS_FLAG_FILENAME;
     const std::string RELOADING_FLAG_FILEPATH     = FLAGS_PATH + RELOADING_FLAG_FILENAME;
     const std::string NTP_SYNC_PENDING_FLAG_FILEPATH = FLAGS_PATH + "NTP_SYNC_PENDING.flag";
-    const std::string OPEN_RETURN_CONTEXT_FILEPATH   = FLAGS_PATH + "open_return_context.flag";
 
     // Protected files
     const std::set<std::string> PROTECTED_FILES = {
@@ -88,10 +87,10 @@ namespace ult {
     // GitHub URLs
     const std::string GITHUB_BASE_URL               = "https://github.com/ppkantorski/";
     const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/ppkantorski/";
-    const std::string RYZHAND_REPO_URL            = GITHUB_BASE_URL + "Ultrahand-Overlay/";
+    const std::string ULTRAHAND_REPO_URL            = GITHUB_BASE_URL + "Ultrahand-Overlay/";
     const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/themes/";
     const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/RELEASE.ini";
-    const std::string LATEST_UPDATER_INI_URL        = RYZHAND_REPO_URL + "releases/latest/download/update.ini";
+    const std::string LATEST_UPDATER_INI_URL        = ULTRAHAND_REPO_URL + "releases/latest/download/update.ini";
     const std::string UPDATER_PAYLOAD_URL           = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/payloads/ultrahand_updater.bin";
 
     // Launch options
@@ -104,7 +103,7 @@ namespace ult {
 
     // Combos
     CONSTEXPR_STRING std::string TESLA_COMBO_STR       = "L+DDOWN+RS";
-    CONSTEXPR_STRING std::string RYZHAND_COMBO_STR   = "ZL+ZR+DDOWN";
+    CONSTEXPR_STRING std::string ULTRAHAND_COMBO_STR   = "ZL+ZR+DDOWN";
 
     // System / mode strings
     CONSTEXPR_STRING std::string FUSE_STR         = "fuse";
@@ -140,7 +139,6 @@ namespace ult {
     CONSTEXPR_STRING std::string LEFT_STR             = "left";
     CONSTEXPR_STRING std::string RIGHT_STR            = "right";
     CONSTEXPR_STRING std::string CENTER_STR           = "center";
-    CONSTEXPR_STRING std::string AUTO_STR             = "auto";
     CONSTEXPR_STRING std::string CHAR_STR             = "char";
     CONSTEXPR_STRING std::string WORD_STR             = "word";
     CONSTEXPR_STRING std::string NONE_STR             = "none";
@@ -179,7 +177,6 @@ namespace ult {
     CONSTEXPR_STRING std::string COPY_SYMBOL         = "\u2192";
     CONSTEXPR_STRING std::string INPROGRESS_SYMBOL   = "\u25CF";
     CONSTEXPR_STRING std::string STAR_SYMBOL         = "\u2605";
-    CONSTEXPR_STRING std::string LAUNCH_SYMBOL       = "\uE072";
     CONSTEXPR_STRING std::string DIVIDER_SYMBOL      = "";
     CONSTEXPR_STRING std::string NOTIFY_HEADER       = "  ";
     CONSTEXPR_STRING std::string HOLD_A_SYMBOL       = "";

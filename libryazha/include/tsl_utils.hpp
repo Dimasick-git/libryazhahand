@@ -25,7 +25,7 @@
 #pragma once
 
 #include <stdio.h>
-#include <ryz.hpp>
+#include <ultra.hpp>
 #include <switch.h>
 #include <arm_neon.h>
 
@@ -103,46 +103,21 @@ namespace ult {
     extern std::string lastTitleID;
     extern std::atomic<bool> resetForegroundCheck;
 
-    /**
-     * Foreground re-assert burst anchor (system tick; 0 = inactive).
-     *
-     * Armed whenever the overlay intentionally acquires foreground
-     * (hlp::requestForeground(true) with updateGlobalFlag) and on HOME
-     * button presses while the overlay is open and holding foreground.
-     *
-     * Rationale: when a suspended title is resumed from the HOME menu
-     * (HOME pressed again, or the game re-selected), am re-arms the
-     * application's input focus as part of the resume transition. If the
-     * overlay was shown via combo right around that transition, its
-     * hidsysEnableAppletToGetInput(false, app) claim is clobbered a
-     * moment later and input flows into BOTH the game and the overlay.
-     * The title-ID poll (resetForegroundCheck) never fires here because
-     * resuming the same game does not change the title ID.
-     *
-     * While armed, the background poller re-asserts the foreground claim
-     * every FOREGROUND_REASSERT_INTERVAL_NS for
-     * FOREGROUND_REASSERT_WINDOW_NS, so the overlay reclaims exclusive
-     * input at most one interval after the system re-arms the game.
-     */
-    extern std::atomic<u64> foregroundReassertStartTick;
-
 
     //extern bool isLauncher;
     extern std::atomic<bool> internalTouchReleased;
     extern u32 layerEdge;
 
-    // (Объявление holdDurationMs переехало ниже -- u64, с PR #309 backport.
-    // Старая u32-версия удалена; conflict с дубликатом ломал сборку.)
+    // Long-press duration (in ms) used by ToggleListItem and other hold-to-confirm
+    // widgets. Configurable from the launcher's Input settings. 500..10000 are
+    // the recommended bounds; default 3000 matches the historical hard-coded value.
+    // (Backport of ppkantorski/libultrahand#16.)
+    extern u32 holdDurationMs;
     extern bool useRightAlignment;
     extern bool useSwipeToOpen;
-    // Optional deadzone calibration for swipe-to-open ("swipe_offset" in
-    // config.ini). Shifts the swipe start zone this many pixels inward from
-    // the screen edge (leftward when opening from the right edge). Read-only
-    // — never written back to config.ini. Default 0.
-    extern s32 swipeOffset;
     extern bool useLaunchCombos;
-    //extern bool useLaunchRecall;
-    //extern bool usePageRecall;
+    extern bool useLaunchRecall;
+    extern bool usePageRecall;
     extern bool useNotifications;
     extern bool useNotificationsHotkey;
     extern bool useStartupNotification;
@@ -157,22 +132,12 @@ namespace ult {
     extern bool useEnterSound;
     extern bool useExitSound;
     extern bool useWallSound;
-
-    // PR #309 backport: настраиваемая длительность hold-press для confirm
-    // действий. processHold в overlay-main делит elapsed на это
-    // значение, чтобы получить процент прогресса. Default 4000 = 4 сек
-    // (как было захардкожено раньше). Диапазон 500-5000 мс задаётся в
-    // UI overlay'я (Settings -> Input -> Hold Time).
-    extern u64 holdDurationMs;
     extern bool useHapticFeedback;
     extern bool useAutoNTPSync;
-    extern bool useStickNavigation;
     extern bool usePageSwap;
     extern std::atomic<bool> noClickableItems;
-    
-    extern bool useSwitch2Style;
+
     extern bool useDynamicLogo;
-    extern bool useDynamicTableColors;
     extern bool useSelectionBG;
     extern bool useSelectionText;
     extern bool useSelectionValue;
@@ -183,13 +148,6 @@ namespace ult {
     extern std::string requestedOverlayPath;
     extern std::string requestedOverlayArgs;
     extern std::mutex overlayLaunchMutex;
-
-    // Invoked synchronously (same call, same thread) right before an "open" package command
-    // requests an overlay launch, so main.cpp can snapshot the current PackageMenu return
-    // context to disk. Left null (and simply skipped) until main.cpp registers it in main().
-    // Plain function pointer (not std::function) so it is constant-initialized to nullptr —
-    // no static-initialization-order concerns when it's assigned during main.cpp's own init.
-    extern void (*openCommandInvokedCallback)();
 #endif
     
     
@@ -261,10 +219,10 @@ namespace ult {
     #define KEY_SR HidNpadButton_AnySR
     #define KEY_LSTICK HidNpadButton_StickL
     #define KEY_RSTICK HidNpadButton_StickR
-    #define KEY_UP    (ult::useStickNavigation ? HidNpadButton_AnyUp    : HidNpadButton_Up)
-    #define KEY_DOWN  (ult::useStickNavigation ? HidNpadButton_AnyDown  : HidNpadButton_Down)
-    #define KEY_LEFT  (ult::useStickNavigation ? HidNpadButton_AnyLeft  : HidNpadButton_Left)
-    #define KEY_RIGHT (ult::useStickNavigation ? HidNpadButton_AnyRight : HidNpadButton_Right)
+    #define KEY_UP HidNpadButton_AnyUp
+    #define KEY_DOWN HidNpadButton_AnyDown
+    #define KEY_LEFT HidNpadButton_AnyLeft
+    #define KEY_RIGHT HidNpadButton_AnyRight
     
     #define SCRIPT_KEY HidNpadButton_Minus
     #define SYSTEM_SETTINGS_KEY HidNpadButton_Plus
@@ -381,52 +339,31 @@ namespace ult {
     extern std::string PCB_TEMPERATURE;
     extern std::string BACKDROP;
     extern std::string BORDER;
-    extern std::string DYNAMIC_BORDER;
-    extern std::string DYNAMIC_TEMPS;
+    extern std::string DYNAMIC_COLORS;
     extern std::string CENTER_ALIGNMENT;
     extern std::string EXTENDED_BACKDROP;
     extern std::string MISCELLANEOUS;
-
-    extern std::string INPUT_SETTINGS;
-    extern std::string LAUNCH_COMBOS;
-    extern std::string SWIPE_TO_OPEN;
-    extern std::string HAPTIC_FEEDBACK;
-    extern std::string STICK_NAVIGATION;
-    extern std::string HOLD_DURATION;
-
-    extern std::string FEATURE_SETTINGS;
-    extern std::string OPAQUE_SCREENSHOTS;
-    extern std::string RIGHT_SIDE_MODE;
-    extern std::string NTP_SYNC_DOWNLOADS;
-
     extern std::string MENU_SETTINGS;
-    extern std::string PACKAGES_MENU;
     extern std::string USER_GUIDE;
+    extern std::string PACKAGES_MENU;
     extern std::string SHOW_HIDDEN;
     extern std::string SHOW_DELETE;
     extern std::string SHOW_UNSUPPORTED;
+
     extern std::string PAGE_SWAP;
+    extern std::string PAGE_RECALL;
+    extern std::string LAUNCH_RECALL;
+    extern std::string RIGHT_SIDE_MODE;
     extern std::string OVERLAY_VERSIONS;
     extern std::string PACKAGE_VERSIONS;
     extern std::string CLEAN_VERSIONS;
-
-    extern std::string THEME_SETTINGS;
-    extern std::string SWITCH_2_STYLE;
-    extern std::string DYNAMIC_LOGO;
-    extern std::string DYNAMIC_TABLES;
-    extern std::string SELECTION_BACKGROUND;
-    extern std::string SELECTION_TEXT;
-    extern std::string SELECTION_VALUE;
-    extern std::string PACKAGE_TITLES;
-    extern std::string IN_PACKAGE_TITLES;
-
     extern std::string KEY_COMBO;
     extern std::string MODE;
     extern std::string LAUNCH_MODES;
     extern std::string LANGUAGE;
     extern std::string OVERLAY_INFO;
     extern std::string SOFTWARE_UPDATE;
-    extern std::string UPDATE_RYZHAND;
+    extern std::string UPDATE_ULTRAHAND;
     extern std::string SYSTEM;
     extern std::string DEVICE_INFO;
     extern std::string FIRMWARE;
@@ -440,14 +377,14 @@ namespace ult {
     extern std::string OVERLAY_MEMORY;
     extern std::string NOT_ENOUGH_MEMORY;
     extern std::string WALLPAPER_SUPPORT_DISABLED;
-    extern std::string SOUND_SUPPORT_DISABLED;
+    //extern std::string SOUND_SUPPORT_DISABLED;
     extern std::string WALLPAPER_SUPPORT_ENABLED;
     extern std::string SOUND_SUPPORT_ENABLED;
     extern std::string EXIT_OVERLAY_SYSTEM;
 
-    extern std::string RYZHAND_ABOUT;
-    extern std::string RYZHAND_CREDITS_START;
-    extern std::string RYZHAND_CREDITS_END;
+    extern std::string ULTRAHAND_ABOUT;
+    extern std::string ULTRAHAND_CREDITS_START;
+    extern std::string ULTRAHAND_CREDITS_END;
 
     extern std::string LOCAL_IP;
     extern std::string WALLPAPER;
@@ -459,6 +396,7 @@ namespace ult {
     extern std::string OPTIONS;
     extern std::string FAILED_TO_OPEN;
 
+    extern std::string LAUNCH_COMBOS;
     extern std::string NOTIFICATIONS;
     extern std::string NOTIFICATION_SETTINGS;
     extern std::string SILENCE_NOTIFICATIONS;
@@ -471,6 +409,10 @@ namespace ult {
     extern std::string CLICK;
     extern std::string TAP;
     extern std::string HOLD_FOR_4S;
+
+    extern std::string HAPTIC_FEEDBACK;
+    extern std::string AUTO_NTP_SYNC;
+    extern std::string OPAQUE_SCREENSHOTS;
 
     extern std::string PACKAGE_INFO;
     extern std::string _TITLE;
@@ -487,29 +429,19 @@ namespace ult {
     extern std::string ON_A_COMMAND;
     extern std::string ON_OVERLAY_PACKAGE;
     extern std::string FEATURES;
-    // SWIPE_TO_OPEN/THEME_SETTINGS/DYNAMIC_LOGO/SELECTION_*/PACKAGE_TITLES
-    // объявлены выше в upstream-блоке (v2.4.5) -- здесь только форк-строки.
-    extern std::string LIBRYZHAND_TITLES;
-    extern std::string LIBRYZHAND_VERSIONS;
+    extern std::string SWIPE_TO_OPEN;
 
-    // Backported из vendored Ryzhand-Overlay -- TXT-читалка + UI-настройки
-    // которые добавлялись там и были недоступны в base libryazhahand.
-    extern std::string TXT_READER;
-    extern std::string NO_TXT_FILES_FOUND;
-    extern std::string TEXT_COLOR;
-    extern std::string TEXT_COLOR_PICKER_HINT;
-    extern std::string UPDATE_LANGUAGES;
-    extern std::string EXTERNAL_NOTIFICATIONS;
-    extern std::string STAIRCASE_EFFECT;
-    extern std::string SOUND_EFFECTS;
-    extern std::string SOUND_NAVIGATION;
-    extern std::string SOUND_ENTER;
-    extern std::string SOUND_EXIT;
-    extern std::string SOUND_WALL;
-    extern std::string USERGUIDE_OFFSET;
+    extern std::string THEME_SETTINGS;
+    extern std::string DYNAMIC_LOGO;
+    extern std::string SELECTION_BACKGROUND;
+    extern std::string SELECTION_TEXT;
+    extern std::string SELECTION_VALUE;
+    extern std::string LIBULTRAHAND_TITLES;
+    extern std::string LIBULTRAHAND_VERSIONS;
+    extern std::string PACKAGE_TITLES;
 
-    extern std::string RYZHAND_HAS_STARTED;
-    extern std::string RYZHAND_HAS_RESTARTED;
+    extern std::string ULTRAHAND_HAS_STARTED;
+    extern std::string ULTRAHAND_HAS_RESTARTED;
     extern std::string NEW_UPDATE_IS_AVAILABLE;
 
     extern std::string DELETE_PACKAGE;
@@ -524,11 +456,9 @@ namespace ult {
     extern std::string REBOOT;
     extern std::string SHUTDOWN;
     extern std::string BOOT_ENTRY;
-    extern std::string INI_ENTRY;
     #endif
 
     extern std::string INCOMPATIBLE_WARNING;
-    extern std::string OVERLAY_DOES_NOT_EXIST;
     extern std::string SYSTEM_RAM;
     extern std::string FREE;
     
@@ -605,8 +535,8 @@ namespace ult {
     
     
     // Predefined hexMap
-    inline constexpr std::array<u8, 256> hexMap = [] {
-        std::array<u8, 256> map = {0};
+    inline constexpr std::array<int, 256> hexMap = [] {
+        std::array<int, 256> map = {0};
         map['0'] = 0; map['1'] = 1; map['2'] = 2; map['3'] = 3; map['4'] = 4;
         map['5'] = 5; map['6'] = 6; map['7'] = 7; map['8'] = 8; map['9'] = 9;
         map['A'] = 10; map['B'] = 11; map['C'] = 12; map['D'] = 13; map['E'] = 14; map['F'] = 15;
@@ -617,7 +547,6 @@ namespace ult {
     
     extern std::atomic<bool> refreshWallpaperNow;
     extern std::atomic<bool> refreshWallpaper;
-    extern std::atomic<bool> refreshCombos;
     extern std::vector<u8> wallpaperData;
     extern std::atomic<bool> inPlot;
     
@@ -626,16 +555,8 @@ namespace ult {
     
     
     
-    // Raw RGBA8888 file -> packed RGBA4444. Используется для маленьких
-    // фиксированного размера иконок (notification icons -- 32×32 .rgba)
-    // где имеет смысл хранить уже-готовый raw-формат вместо PNG.
-    // Wallpaper использует другую функцию loadWallpaperFile (PNG).
+    // Function to load the RGBA file into memory and modify wallpaperData directly
     bool loadRGBA8888toRGBA4444(const std::string& filePath, u8* dst, size_t srcSize);
-
-    // Load PNG wallpaper -> wallpaperData (RGBA4444). Реализация в .cpp
-    // через libpng. Поддерживает RGB/RGBA/grayscale/palette + tRNS,
-    // 8/16-bit depth, произвольное разрешение (nearest-neighbor scale
-    // в 448×720).
     void loadWallpaperFile(const std::string& filePath, s32 width = 448, s32 height = 720);
     void loadWallpaperFileWhenSafe();
 
@@ -643,19 +564,6 @@ namespace ult {
     
     
     extern std::atomic<bool> themeIsInitialized;
-
-    // ───── Default theme settings ─────────────────────────────────────
-    // Канонический набор всех theme-keys с дефолтными цветами. Используется
-    // overlay'ями для init темы при первом запуске (initializeTheme).
-    // Backported из vendored Ryzhand-Overlay.
-    extern std::map<const std::string, std::string> defaultThemeSettingsMap;
-
-    // ───── Wallpaper color-filter API ─────────────────────────────────
-    // 0=none, 1=red, 2=green, 3=blue, 4=sepia, 5=invert.
-    extern std::atomic<int> wallpaperColorFilter;
-    void nextWallpaperFilter();
-    void setWallpaperFilter(int filterType);
-    void loadWallpaperFilterSettings();
 
     // Variables for touch commands
     extern std::atomic<bool> touchingBack;
@@ -726,14 +634,14 @@ namespace ult {
     
     
     // Widget settings
-    extern bool hideClock, hideBattery, hidePCBTemp, hideSOCTemp, dynamicWidgetColors, dynamicWidgetBorder;
+    extern bool hideClock, hideBattery, hidePCBTemp, hideSOCTemp, dynamicWidgetColors;
     extern bool hideWidgetBackdrop, hideWidgetBorder, centerWidgetAlignment, extendedWidgetBackdrop;
 
     #if IS_LAUNCHER_DIRECTIVE
     void reinitializeWidgetVars();
     #endif
     
-    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibryazhahandTitles, useLibryazhahandVersions, usePackageTitles, usePackageVersions, useInPackageTitles;
+    extern bool cleanVersionLabels, hideOverlayVersions, hidePackageVersions, useLibultrahandTitles, useLibultrahandVersions, usePackageTitles, usePackageVersions;
     
 
 
