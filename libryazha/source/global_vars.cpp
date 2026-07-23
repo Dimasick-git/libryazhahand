@@ -3,7 +3,7 @@
  * Author: ppkantorski
  * Description: 
  *   This source file provides the definitions of global constants and paths used 
- *   throughout the Ultrahand Overlay project. These constants are essential for 
+ *   throughout the RyazhaHand Overlay project. These constants are essential for 
  *   file management and configuration settings within the application.
  *
  *   For the latest updates and contributions, visit the project's GitHub repository:
@@ -22,13 +22,7 @@ namespace ult {
 
     // Base paths
     const std::string ROOT_PATH          = "sdmc:/";
-    // Все assets (themes/sounds/lang/notifications/wallpapers) живут здесь
-    // и шарятся между Ryzhand-Overlay, Ryazha-CLK, RyazhaTune и т.д. -- все
-    // оверлеи на libryazhahand видят одну общую папку config.
-    // Раньше было "config/ultrahand/" -- осталось от исходного libultrahand,
-    // а ProjectName уже был ryazhahand, что приводило к рассинхрону путей
-    // (юзер кладёт темы в /config/ryazhahand/themes, а либа ищет в ultrahand).
-    const std::string BASE_CONFIG_PATH   = ROOT_PATH + "config/ryazhahand/";
+    const std::string BASE_CONFIG_PATH   = ROOT_PATH + "config/ultrahand/";
     const std::string TESLA_CONFIG_PATH  = ROOT_PATH + "config/tesla/";
     const std::string SWITCH_PATH        = ROOT_PATH + "switch/";
 
@@ -36,8 +30,6 @@ namespace ult {
     const std::string OVL_HEAP_CONFIG_PATH = NX_OVLLOADER_PATH + "heap_size.bin";
     const std::string OVL_EXIT_FLAG_PATH = NX_OVLLOADER_PATH + "exit_flag.bin";
     const std::string OVL_RELOAD_FLAG_PATH = NX_OVLLOADER_PATH + "reload_flag.bin";
-    const std::string OLD_NX_OVLLOADER_ZIP_URL
-        = "https://github.com/ppkantorski/nx-ovlloader/releases/download/v1.0.8/nx-ovlloader.zip";
     
     // Filenames
     CONSTEXPR_STRING std::string CONFIG_FILENAME       = "config.ini";
@@ -45,7 +37,7 @@ namespace ult {
     const std::string EXIT_PACKAGE_FILENAME            = "exit_package.ini";
     const std::string PACKAGE_FILENAME                 = "package.ini";
     const std::string THEME_FILENAME                   = "theme.ini";
-    const std::string WALLPAPER_FILENAME               = "wallpaper.png";
+    const std::string WALLPAPER_FILENAME               = "wallpaper.rgba";
     const std::string FUSE_FILENAME                    = "fuse.ini";
     const std::string OVERLAYS_INI_FILENAME            = "overlays.ini";
     const std::string PACKAGES_INI_FILENAME            = "packages.ini";
@@ -54,11 +46,9 @@ namespace ult {
 
     // Project names
     CONSTEXPR_STRING std::string RYZHAND_PROJECT_NAME         = "ryazhahand";
-    CONSTEXPR_STRING std::string CAPITAL_RYZHAND_PROJECT_NAME = "Ryzhand";
-    // Brand split (для дроби в логотипе / UI). Раньше было "Ultra"+"hand"
-    // от upstream, теперь "Ryzh"+"and" под наш бренд.
-    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Ryzh";
-    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "and";
+    CONSTEXPR_STRING std::string CAPITAL_RYZHAND_PROJECT_NAME = "RyazhaHand";
+    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Ultra";
+    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "hand";
 
     // Paths
     const std::string SETTINGS_PATH               = BASE_CONFIG_PATH;
@@ -68,13 +58,8 @@ namespace ult {
     const std::string THEMES_PATH                 = BASE_CONFIG_PATH + "themes/";
     const std::string WALLPAPERS_PATH             = BASE_CONFIG_PATH + "wallpapers/";
     const std::string ASSETS_PATH                 = BASE_CONFIG_PATH + "assets/";
-    // Swap visible/hidden vs upstream libultrahand:
-    //   sounds/         -- visible ZIP-паки (юзер видит и кладёт зипки)
-    //   .loaded_sounds/ -- hidden, активный распакованный пак (Audio читает отсюда)
-    // Так юзеру проще найти куда класть звуки, а .loaded_sounds/ управляется
-    // оверлеем (clear + unzip при выборе пака).
-    const std::string SOUNDS_PATH                 = BASE_CONFIG_PATH + "sounds/";
-    const std::string LOADED_SOUNDS_PATH          = BASE_CONFIG_PATH + ".loaded_sounds/";
+    const std::string SOUNDS_PATH                 = BASE_CONFIG_PATH + ".sounds/";
+    const std::string LOADED_SOUNDS_PATH          = BASE_CONFIG_PATH + "sounds/";
     const std::string FLAGS_PATH                  = BASE_CONFIG_PATH + "flags/";
     const std::string NOTIFICATIONS_PATH          = BASE_CONFIG_PATH + "notifications/";
     const std::string NOTIFICATIONS_ICONS_PATH    = ASSETS_PATH + "notifications/";
@@ -92,6 +77,7 @@ namespace ult {
     const std::string NOTIFICATIONS_FLAG_FILEPATH = FLAGS_PATH + NOTIFICATIONS_FLAG_FILENAME;
     const std::string RELOADING_FLAG_FILEPATH     = FLAGS_PATH + RELOADING_FLAG_FILENAME;
     const std::string NTP_SYNC_PENDING_FLAG_FILEPATH = FLAGS_PATH + "NTP_SYNC_PENDING.flag";
+    const std::string OPEN_RETURN_CONTEXT_FILEPATH   = FLAGS_PATH + "open_return_context.flag";
 
     // Protected files
     const std::set<std::string> PROTECTED_FILES = {
@@ -100,13 +86,13 @@ namespace ult {
     };
 
     // GitHub URLs
-    const std::string GITHUB_BASE_URL               = "https://github.com/Dimasick-git/";
-    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/Dimasick-git/";
-    const std::string RYZHAND_REPO_URL            = GITHUB_BASE_URL + "Ryazhahand-Overlay/";
-    const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/themes/";
-    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/RELEASE.ini";
+    const std::string GITHUB_BASE_URL               = "https://github.com/ppkantorski/";
+    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/ppkantorski/";
+    const std::string RYZHAND_REPO_URL            = GITHUB_BASE_URL + "Ultrahand-Overlay/";
+    const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/themes/";
+    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/RELEASE.ini";
     const std::string LATEST_UPDATER_INI_URL        = RYZHAND_REPO_URL + "releases/latest/download/update.ini";
-    const std::string UPDATER_PAYLOAD_URL           = GITHUB_RAW_BASE_URL + "Ryazhahand-Overlay/main/payloads/ryazhahand_updater.bin";
+    const std::string UPDATER_PAYLOAD_URL           = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/payloads/ultrahand_updater.bin";
 
     // Launch options
     const std::string LAUNCH_ARGS_STR       = "launch_args";
@@ -154,6 +140,7 @@ namespace ult {
     CONSTEXPR_STRING std::string LEFT_STR             = "left";
     CONSTEXPR_STRING std::string RIGHT_STR            = "right";
     CONSTEXPR_STRING std::string CENTER_STR           = "center";
+    CONSTEXPR_STRING std::string AUTO_STR             = "auto";
     CONSTEXPR_STRING std::string CHAR_STR             = "char";
     CONSTEXPR_STRING std::string WORD_STR             = "word";
     CONSTEXPR_STRING std::string NONE_STR             = "none";
@@ -192,6 +179,7 @@ namespace ult {
     CONSTEXPR_STRING std::string COPY_SYMBOL         = "\u2192";
     CONSTEXPR_STRING std::string INPROGRESS_SYMBOL   = "\u25CF";
     CONSTEXPR_STRING std::string STAR_SYMBOL         = "\u2605";
+    CONSTEXPR_STRING std::string LAUNCH_SYMBOL       = "\uE072";
     CONSTEXPR_STRING std::string DIVIDER_SYMBOL      = "";
     CONSTEXPR_STRING std::string NOTIFY_HEADER       = "  ";
     CONSTEXPR_STRING std::string HOLD_A_SYMBOL       = "";
