@@ -62,48 +62,6 @@ namespace ult {
 
         reloadAllSounds();
 
-        // PRIME audout с silent-буфером.
-        //
-        // audoutPlayBuffer() = audoutAppendAudioOutBuffer + audoutWaitPlayFinish.
-        // На ПЕРВЫЙ вызов аудио-движок имеет startup-cost ~200-300ms
-        // (DMA engine инициализирует свой pipeline, ASIC просыпается).
-        // Эти 200-300ms блокируют sound-thread в audoutPlayBuffer.
-        //
-        // Симптом без prime: юзер жмёт X -> sound thread начинает первый
-        // playSound -> blocks 300ms внутри audoutWaitPlayFinish. За эти
-        // 300ms юзер уже жмёт следующую кнопку -> новый signal сидит в
-        // soundEvent. Когда первый sound завершается (slow), thread сразу
-        // подбирает следующий -> два звука звучат вплотную, и юзер
-        // слышит "X не сыграл, а сыграл вместе со следующим".
-        //
-        // Решение: одноразово отправить silent (zero-fill) буфер ещё на
-        // initialize. Эти 300ms приёма уйдут синхронно в initServices
-        // (юзер ещё не открыл overlay, ничего не слышно). После этого
-        // engine полностью awake, последующие audoutPlayBuffer возвращают
-        // в течение реального duration WAV'а (10-30ms), juzer слышит
-        // звук сразу после нажатия.
-        // ВАЖНО: prime НЕ должен зависеть от m_playBuf. Ryazha распаковывает
-        // WAV'ы в .loaded_sounds/ лениво (reloadSoundCacheNow на sound-треде),
-        // поэтому на момент initialize() звуки ещё НЕ загружены и m_playBuf == null.
-        // Старый prime под `if (m_playBuf ...)` просто пропускался -> прогрев не
-        // случался -> ПЕРВЫЙ слышимый клик съедал ~300ms latency и звучал на
-        // следующем нажатии (классический off-by-one). Отдельный throwaway-буфер
-        // гарантирует прогрев pipeline всегда, ещё до первого клика.
-        {
-            void* primeBuf = aligned_alloc(AUDIO_ALIGN, AUDIO_ALIGN);
-            if (primeBuf) {
-                std::memset(primeBuf, 0, AUDIO_ALIGN);
-                AudioOutBuffer prime = {};
-                prime.buffer      = primeBuf;
-                prime.buffer_size = AUDIO_ALIGN;
-                prime.data_size   = AUDIO_ALIGN;
-                prime.data_offset = 0;
-                AudioOutBuffer* rel = nullptr;
-                audoutPlayBuffer(&prime, &rel);   // блокирующий — съедает wake-latency здесь
-                free(primeBuf);
-            }
-        }
-
         return true;
     }
 

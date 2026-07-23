@@ -71,10 +71,8 @@ namespace ult {
         char* buffer = bufferPtr.get();
         std::string line;
     
-        // Field prefixes paired with their target members. A plain array avoids
-        // instantiating std::map<std::string_view, std::string*> (smaller code, no
-        // per-call heap nodes); each line matches at most one prefix so order is moot.
-        const std::pair<std::string_view, std::string*> fieldMap[] = {
+        // Create field map once outside the loop
+        const std::map<std::string_view, std::string*> fieldMap = {
             {";title=", &packageHeader.title},
             {";display_title=", &packageHeader.display_title},
             {";version=", &packageHeader.version},
@@ -87,7 +85,7 @@ namespace ult {
         };
         
         int fieldsFound = 0;
-        const int totalFields = static_cast<int>(sizeof(fieldMap) / sizeof(fieldMap[0]));
+        const int totalFields = fieldMap.size();
         
         size_t startPos, endPos, first, last;
         std::string value;
@@ -490,40 +488,7 @@ namespace ult {
         return sections;
     }
     
-    /**
-     * @brief Returns INI section names for ini_file_source (single path or wildcard merge).
-     *
-     * Single-file paths use parseSectionsFromIni unchanged. Wildcard paths enumerate matching
-     * files and merge section names (skips empty, deduplicates by first occurrence).
-     *
-     * The append overload writes into an existing vector, enabling chained ini_file_source
-     * declarations to accumulate sections with cross-call deduplication (first occurrence wins).
-     */
-    void parseSectionsFromIniPattern(const std::string& iniPathPattern, std::vector<std::string>& out, size_t maxItemsLimit) {
-        const auto appendDeduped = [&](std::vector<std::string> sections) {
-            for (auto& sectionName : sections) {
-                if (!sectionName.empty() &&
-                    std::find(out.begin(), out.end(), sectionName) == out.end()) {
-                    out.push_back(std::move(sectionName));
-                }
-            }
-        };
-
-        if (iniPathPattern.find('*') == std::string::npos) {
-            appendDeduped(parseSectionsFromIni(iniPathPattern));
-            return;
-        }
-
-        for (const auto& filePath : getFilesListByWildcards(iniPathPattern, maxItemsLimit)) {
-            appendDeduped(parseSectionsFromIni(filePath));
-        }
-    }
-
-    std::vector<std::string> parseSectionsFromIniPattern(const std::string& iniPathPattern, size_t maxItemsLimit) {
-        std::vector<std::string> out;
-        parseSectionsFromIniPattern(iniPathPattern, out, maxItemsLimit);
-        return out;
-    }
+    
     
     /**
      * @brief Parses a specific value from a section and key in an INI file.
@@ -1701,6 +1666,5 @@ namespace ult {
                                         const std::string& keyToRemove) {
         processKeysInMatchingSections(filePath, patternKey, keyToRemove, "", KeyOp::REMOVE);
     }
-
 
 }
