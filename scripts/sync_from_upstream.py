@@ -46,6 +46,10 @@ CONTENT_REWRITES: list[tuple[str, str]] = [
     (r"\bLIBULTRAHAND_", "LIBRYZHAND_"),
     (r"\bCAPITAL_ULTRAHAND_", "CAPITAL_RYZHAND_"),
     (r"\bULTRAHAND_", "RYZHAND_"),
+    # CamelCase-идентификаторы (наш форк переименовал useLibultrahandTitles/
+    # Versions в tsl_utils.*; без этого правила каждый upstream-синк падает
+    # в конфликт на строках объявления -- см. issue #12).
+    (r"\buseLibultrahand", "useLibryazhahand"),
     # Runtime-пути.
     (r"/config/ultrahand/", "/config/ryazhahand/"),
     # Отображаемые имена.

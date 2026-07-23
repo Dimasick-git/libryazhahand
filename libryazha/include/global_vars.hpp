@@ -3,7 +3,7 @@
  * Author: ppkantorski
  * Description: 
  *   This header file provides the definitions of global constants and paths used 
- *   throughout the Ultrahand Overlay project. These constants are essential for 
+ *   throughout the RyazhaHand Overlay project. These constants are essential for 
  *   file management and configuration settings within the application.
  *
  *   For the latest updates and contributions, visit the project's GitHub repository:
@@ -43,8 +43,6 @@ namespace ult {
     extern const std::string OVL_HEAP_CONFIG_PATH;
     extern const std::string OVL_EXIT_FLAG_PATH;
     extern const std::string OVL_RELOAD_FLAG_PATH;
-    // URL для legacy fallback-обновления nx-ovlloader через overlay launcher.
-    extern const std::string OLD_NX_OVLLOADER_ZIP_URL;
 
     extern const std::string RYZHAND_CONFIG_INI_PATH;
     extern const std::string TESLA_CONFIG_INI_PATH;
@@ -83,6 +81,13 @@ namespace ult {
     extern const std::string NOTIFICATIONS_FLAG_FILEPATH;
     extern const std::string RELOADING_FLAG_FILEPATH;
     extern const std::string NTP_SYNC_PENDING_FLAG_FILEPATH;
+    // Single-use, self-clearing flag file: holds a serialized PackageMenu return-context
+    // stack captured by the "open" package command so that backing all the way out of a
+    // directly-opened overlay (no launch combo in between) can restore the exact package /
+    // section / page / item the user was on. Written in main.cpp (captureOpenReturnContext),
+    // consumed in main.cpp (loadOpenReturnContext), and cleared on any launch-combo-driven
+    // overlay switch in tesla.hpp.
+    extern const std::string OPEN_RETURN_CONTEXT_FILEPATH;
 
     extern const std::set<std::string> PROTECTED_FILES;
 
@@ -135,6 +140,7 @@ namespace ult {
     extern const std::string LEFT_STR;
     extern const std::string RIGHT_STR;
     extern const std::string CENTER_STR;
+    extern const std::string AUTO_STR;
     extern const std::string CHAR_STR;
     extern const std::string WORD_STR;
     extern const std::string NONE_STR;
@@ -173,6 +179,7 @@ namespace ult {
     extern const std::string COPY_SYMBOL;
     extern const std::string INPROGRESS_SYMBOL;
     extern const std::string STAR_SYMBOL;
+    extern const std::string LAUNCH_SYMBOL;
     extern const std::string DIVIDER_SYMBOL;
     extern const std::string NOTIFY_HEADER;
     extern const std::string HOLD_A_SYMBOL;
