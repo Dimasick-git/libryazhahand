@@ -14553,8 +14553,11 @@ namespace tsl {
             // Configure HID system to only listen to these IDs
             hidSetSupportedNpadIdType(id_list, 2);
             
-            // Configure input for up to 2 supported controllers (P1 + Handheld)
-            padConfigureInput(2, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadSystemExt);
+            // Configure input for up to 2 supported controllers (P1 + Handheld).
+            // NpadGc included so GameCube controllers (USB adapter) can drive the
+            // overlay UI too — libnx padUpdate() reads HidNpadGcState natively
+            // (see Dimasick-git/RyazhaTune#33).
+            padConfigureInput(2, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadSystemExt | HidNpadStyleTag_NpadGc);
             
             // Initialize separate pad states for both controllers
             auto pad_p1_ptr = std::make_unique<PadState>();
