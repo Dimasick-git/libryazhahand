@@ -16198,11 +16198,17 @@ namespace tsl {
         threadCreate(&backgroundEventThread, impl::backgroundEventPoller, &shData, nullptr, 0x2000, 0x2c, -2);
         threadStart(&backgroundEventThread);
 
-        // PSC sleep/wake detection — dedicated thread, zero CPU between transitions
-        ueventCreate(&sleepStopEvent, true); // auto-clear; used to wake poller on shutdown
-        Thread backgroundSleepThread;
-        threadCreate(&backgroundSleepThread, impl::backgroundSleepPoller, nullptr, nullptr, 0x1000, 0x2c, -2);
-        threadStart(&backgroundSleepThread);
+        /* PSC-ПОЛЛЕР СНА ОТКЛЮЧЁН (RCU, 20.07, по результатам тестов на железе).
+         * backgroundSleepPoller регистрирует PSC-модуль 0x5453 и обязан подтверждать каждый
+         * запрос засыпания. На этой консоли ЛЮБОЙ наш участник цепочки засыпания вешает вход в
+         * сон: консоль замирает на кнопке питания, нет даже звука отключения USB. Сначала это
+         * вычистили в сисмодуле (гвардия сна удалена полностью), но сон остался сломан — потому
+         * что второй PSC-модуль сидел здесь, в оверлее.
+         * Эталонный Horizon-OC использует libultrahand, где PSC не упоминается НИ РАЗУ
+         * (проверено: pscmGetPmModule = 0 во всех копиях tesla.hpp), и сон там не ломался.
+         * Приводим поведение к эталону. Следствие: tsl::isSleeping() всегда false — ровно как в
+         * libultrahand, где такого понятия нет вовсе.
+         * NB: правка сделана в вендоренной копии; при обновлении libryazhahand её надо перенести. */
         
 
         bool shouldFireEvent = false;
@@ -16555,10 +16561,7 @@ namespace tsl {
             threadWaitForExit(&backgroundEventThread);
             threadClose(&backgroundEventThread);
 
-            // Stop sleep poller — instant unblock via stop event
-            ueventSignal(&sleepStopEvent);
-            threadWaitForExit(&backgroundSleepThread);
-            threadClose(&backgroundSleepThread);
+            // PSC-поллер сна не запускается (см. выше) — останавливать нечего.
             
             // Cleanup overlay resources
             hlp::requestForeground(false);
