@@ -181,6 +181,9 @@ inline double elapsedTime = 0.0;
 // Custom variables
 inline std::atomic<bool> jumpToTop{false};
 inline std::atomic<bool> jumpToBottom{false};
+// A focused custom editor can reserve L/R without also triggering the global
+// jump-to-first/jump-to-last list shortcut on the button-release frame.
+inline std::atomic<bool> blockShoulderJump{false};
 inline std::atomic<bool> skipUp{false};
 inline std::atomic<bool> skipDown{false};
 inline u32 offsetWidthVar = 112;
@@ -956,8 +959,12 @@ namespace tsl {
     
     namespace style {
         constexpr u32 ListItemDefaultHeight         = 70;       ///< Standard list item height
-        constexpr u32 MiniListItemDefaultHeight     = 40;       ///< Mini list item height
+        constexpr u32 MiniListItemDefaultHeight     = 42;       ///< Compact list item height
         constexpr u32 TrackBarDefaultHeight         = 83;       ///< Standard track bar height
+        constexpr u32 ListItemLabelFontSize         = 23;       ///< Standard list item label font
+        constexpr u32 MiniListItemLabelFontSize     = 19;       ///< Compact list item label font
+        constexpr u32 ListItemValueFontSize         = 20;       ///< Standard list item value font
+        constexpr u32 MiniListItemValueFontSize     = 17;       ///< Compact list item value font
         constexpr u8  ListItemHighlightSaturation   = 7;        ///< Maximum saturation of Listitem highlights
         constexpr u8  ListItemHighlightLength       = 22;       ///< Maximum length of Listitem highlights
 
@@ -9002,7 +9009,8 @@ namespace tsl {
                 #endif
 
                 const s16 yOffset = ((tsl::style::ListItemDefaultHeight - m_listItemHeight) >> 1) + 1;
-                const s32 textBaselineY = renderer->getVerticalCenterBaseline(this->getY(), m_listItemHeight, 23);
+                const u32 labelSize = labelFontSize();
+                const s32 textBaselineY = renderer->getVerticalCenterBaseline(this->getY(), m_listItemHeight, labelSize);
         
                 if (!m_maxWidth || valueReservedWidthChanged()) [[unlikely]] {
                     calculateWidths(renderer);
@@ -9023,10 +9031,10 @@ namespace tsl {
                                 : (useClickTextColor ? clickTextColor : selectedTextColor))
                             : (useClickTextColor ? clickTextColor : (m_flags.m_hasBaseTextColor ? m_baseTextColor : defaultTextColor)));
                 #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, textBaselineY, 23,
+                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, textBaselineY, labelSize,
                         textColor, m_focused ? starColor : selectionStarColor);
                 #else
-                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, textBaselineY, 23,
+                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, textBaselineY, labelSize,
                         textColor, textSeparatorColor);
                 #endif
                 } else {
@@ -9371,6 +9379,18 @@ namespace tsl {
             }
         
         protected:
+            u32 labelFontSize() const {
+                return m_listItemHeight <= tsl::style::MiniListItemDefaultHeight
+                    ? tsl::style::MiniListItemLabelFontSize
+                    : tsl::style::ListItemLabelFontSize;
+            }
+
+            u32 valueFontSize() const {
+                return m_listItemHeight <= tsl::style::MiniListItemDefaultHeight
+                    ? tsl::style::MiniListItemValueFontSize
+                    : tsl::style::ListItemValueFontSize;
+            }
+
             u64 timeIn_ns;
             std::string m_text;
             std::string m_text_clean;
@@ -9503,14 +9523,14 @@ namespace tsl {
                         // circle's position independent of the label's presence.
                         const std::string label = radioSelectorLabel();
                         const s32 labelWidth = label.empty() ? 0
-                            : static_cast<s32>(renderer->getTextDimensions(label, false, 20).first);
+                            : static_cast<s32>(renderer->getTextDimensions(label, false, valueFontSize()).first);
                         const s32 gapWidth = label.empty() ? 0
-                            : static_cast<s32>(renderer->getTextDimensions("  ", false, 20).first);
+                            : static_cast<s32>(renderer->getTextDimensions("  ", false, valueFontSize()).first);
                         return labelWidth + gapWidth + diameter + 66;
                     }
                 }
                 return m_value.empty() ? 62
-                                       : (static_cast<s32>(renderer->getTextDimensions(m_value, false, 20).first) + 66);
+                                       : (static_cast<s32>(renderer->getTextDimensions(m_value, false, valueFontSize()).first) + 66);
             }
 
             // Hook for subclasses whose valueReservedWidth() depends on external/global
@@ -9533,7 +9553,8 @@ namespace tsl {
             void calculateWidths(gfx::Renderer* renderer) {
                 m_maxWidth = getWidth() - valueReservedWidth(renderer);
             
-                const u16 width = renderer->getTextDimensions(m_text_clean, false, 23).first;
+                const u32 fontSize = labelFontSize();
+                const u16 width = renderer->getTextDimensions(m_text_clean, false, fontSize).first;
                 m_flags.m_truncated = width > m_maxWidth + 20;
             
                 if (m_flags.m_truncated) [[unlikely]] {
@@ -9541,16 +9562,17 @@ namespace tsl {
                     m_scrollText.reserve(m_text_clean.size() * 2 + 8);
                     
                     m_scrollText.append(m_text_clean).append("        ");
-                    m_textWidth = renderer->getTextDimensions(m_scrollText, false, 23).first;
+                    m_textWidth = renderer->getTextDimensions(m_scrollText, false, fontSize).first;
                     m_scrollText.append(m_text_clean);
                     
-                    m_ellipsisText = renderer->limitStringLength(m_text_clean, false, 23, m_maxWidth);
+                    m_ellipsisText = renderer->limitStringLength(m_text_clean, false, fontSize, m_maxWidth);
                 } else {
                     m_textWidth = width;
                 }
             }
         
             void drawTruncatedText(gfx::Renderer* renderer, s32 baselineY, bool useClickTextColor, const std::vector<std::string>& specialSymbols = {}) {
+                const u32 fontSize = labelFontSize();
                 if (m_focused) {
                     {
                         const s32 s2Ext = ult::useSwitch2Style ? 7 : 0;
@@ -9561,20 +9583,20 @@ namespace tsl {
                         renderer->enableScissoring(scissorX, 97, scissorW, tsl::cfg::FramebufferHeight - 170);
                     }
                 #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), baselineY, 23,
+                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), baselineY, fontSize,
                         m_flags.m_hasCustomTextColor ? m_customTextColor : (!ult::useSelectionText ? (m_flags.m_hasBaseTextColor ? m_baseTextColor : defaultTextColor) : (useClickTextColor ? clickTextColor : selectedTextColor)), starColor);
                 #else
-                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), baselineY, 23,
+                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), baselineY, fontSize,
                         m_flags.m_hasCustomTextColor ? m_customTextColor : (!ult::useSelectionText ? (m_flags.m_hasBaseTextColor ? m_baseTextColor : defaultTextColor) : (useClickTextColor ? clickTextColor : selectedTextColor)), textSeparatorColor);
                 #endif
                     renderer->disableScissoring();
                     handleScrolling();
                 } else {
                 #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, 23,
+                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, fontSize,
                         m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : (m_flags.m_hasBaseTextColor ? m_baseTextColor : defaultTextColor)), starColor);
                 #else
-                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, 23,
+                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, fontSize,
                         m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : (m_flags.m_hasBaseTextColor ? m_baseTextColor : defaultTextColor)), textSeparatorColor);
                 #endif
                 }
@@ -9770,7 +9792,7 @@ namespace tsl {
                     } else {
                         label = radioSelectorLabel(&selected);
                     }
-                    static constexpr s32 fontSize = 20;
+                    const s32 fontSize = static_cast<s32>(valueFontSize());
                     if (!label.empty()) {
                         const s32 labelWidth = static_cast<s32>(renderer->getTextDimensions(label, false, fontSize).first);
                         const s32 gapWidth   = static_cast<s32>(renderer->getTextDimensions("  ", false, fontSize).first);
@@ -9828,7 +9850,7 @@ namespace tsl {
             virtual void drawValue(gfx::Renderer* renderer, s32 yOffset, bool useClickTextColor) {
                 (void)yOffset;
                 const s32 xPosition = getX() + m_maxWidth + 47;
-                static constexpr s32 fontSize = 20;
+                const s32 fontSize = static_cast<s32>(valueFontSize());
                 const s32 yPosition = renderer->getVerticalCenterBaseline(getY(), m_listItemHeight, fontSize);
             
             #if IS_LAUNCHER_DIRECTIVE
@@ -9949,6 +9971,29 @@ namespace tsl {
             
             // Destructor if needed (inherits default behavior from ListItem)
             virtual ~MiniListItem() {}
+        };
+
+        /**
+         * @brief Compact list row with RCU-style spacing and no separator grid.
+         *
+         * Uses the shared 42 px / 19 px / 17 px compact metrics. Keeping this in
+         * libtesla lets overlays opt in without duplicating drawing constants.
+         */
+        class CompactListItem : public ListItem {
+        public:
+            CompactListItem(const std::string& text, const std::string& value = "")
+                : ListItem(text, value, true) {}
+
+            void drawSeparators(gfx::Renderer*) override {}
+        };
+
+        /** Silent action row using the same compact metrics. */
+        class CompactSilentListItem : public SilentListItem {
+        public:
+            CompactSilentListItem(const std::string& text, const std::string& value = "")
+                : SilentListItem(text, value, true) {}
+
+            void drawSeparators(gfx::Renderer*) override {}
         };
 
         /**
@@ -10313,6 +10358,28 @@ namespace tsl {
             virtual ~MiniToggleListItem() {}
         };
 
+        /**
+         * @brief Compact textual toggle matching CompactListItem.
+         *
+         * The state remains an ON/OFF value even when the global Switch2 theme is
+         * active, so dense settings lists keep a stable right-aligned value column.
+         */
+        class CompactToggleListItem : public ToggleListItem {
+        public:
+            CompactToggleListItem(const std::string& text, bool initialState,
+                                  const std::string& onValue = ult::ON,
+                                  const std::string& offValue = ult::OFF)
+                : ToggleListItem(text, initialState, onValue, offValue, true) {}
+
+            void drawSeparators(gfx::Renderer*) override {}
+
+        protected:
+            void drawValue(gfx::Renderer* renderer, s32 yOffset,
+                           bool useClickTextColor) override {
+                ListItem::drawValue(renderer, yOffset, useClickTextColor);
+            }
+        };
+
 
         class DummyListItem : public ListItem {
         public:
@@ -10652,6 +10719,21 @@ namespace tsl {
         
                 m_scroll = false;
                 constantsInitialized = false;
+            }
+        };
+
+        /**
+         * RCU-style section divider: fixed 33 px height, accent marker and the
+         * CategoryHeader separator. Long translated captions keep the base
+         * class scrolling/truncation behaviour.
+         */
+        class CompactCategoryHeader : public CategoryHeader {
+        public:
+            explicit CompactCategoryHeader(const std::string& title, bool hasSeparator = true)
+                : CategoryHeader(title, hasSeparator) {}
+
+            void layout(u16, u16, u16, u16) override {
+                this->setBoundaries(this->getX(), this->getY(), this->getWidth(), 33);
             }
         };
         
@@ -14023,9 +14105,11 @@ namespace tsl {
             }
         
         #if !IS_STATUS_MONITOR_DIRECTIVE
-            if (!touchDetected && !interpreterIsRunning && topElement) {
+            if (!blockShoulderJump.load(std::memory_order_acquire) &&
+                !touchDetected && !interpreterIsRunning && topElement) {
         #else
-            if (!disableJumpTo && !touchDetected && !interpreterIsRunning && topElement) {
+            if (!disableJumpTo && !blockShoulderJump.load(std::memory_order_acquire) &&
+                !touchDetected && !interpreterIsRunning && topElement) {
         #endif
                 static constexpr u64 INITIAL_HOLD_THRESHOLD_NS = 400000000ULL;
                 static constexpr u64 HOLD_THRESHOLD_NS         = 300000000ULL;
