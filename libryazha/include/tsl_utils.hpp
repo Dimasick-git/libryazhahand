@@ -669,6 +669,10 @@ namespace ult {
     extern std::atomic<bool> simulatedMenu;
     extern std::atomic<bool> stillTouching;
     extern std::atomic<bool> interruptedTouch;
+    // Number of contacts from Tesla's single HID sampling pass. Custom GUIs
+    // consume this instead of polling hidGetTouchScreenStates concurrently.
+    extern std::atomic<u32> currentTouchCount;
+    extern HidTouchScreenState currentTouchState;
     extern std::atomic<bool> touchInBounds;
     
     

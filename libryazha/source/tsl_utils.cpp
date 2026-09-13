@@ -1168,6 +1168,8 @@ namespace ult {
     std::atomic<bool> simulatedMenu(false);
     std::atomic<bool> stillTouching(false);
     std::atomic<bool> interruptedTouch(false);
+    std::atomic<u32> currentTouchCount(0);
+    HidTouchScreenState currentTouchState{};
     std::atomic<bool> touchInBounds(false);
     
     

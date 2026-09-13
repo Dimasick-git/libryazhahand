@@ -154,6 +154,7 @@ inline std::atomic<bool> wasRendering{false};
 inline LEvent renderingStopEvent;
 inline bool FullMode = true;
 inline bool deactivateOriginalFooter = false;
+inline bool fullPanelHidden = false;
 inline bool disableJumpTo = false;
 
 inline std::string lastMode;
@@ -3857,7 +3858,8 @@ namespace tsl {
             // Full-frame specialised replacement for renderer->drawWallpaper().
             //
             // Fixed contract:
-            //   • always 448×720 full-screen (correctFrameSize guaranteed)
+            //   • always draws a 448×720 panel at framebuffer origin
+            //     (the framebuffer itself may be wider for floating Full cards)
             //   • always opacity 1.0 in normal operation
             //   • always preserveAlpha == true
             //   • always called immediately after fillScreen (no scissoring active)
@@ -3891,7 +3893,7 @@ namespace tsl {
             
                 if (!ult::wallpaperData.empty() &&
                     !ult::refreshWallpaper.load(std::memory_order_acquire) &&
-                    ult::correctFrameSize)
+                    cfg::FramebufferWidth >= 448 && cfg::FramebufferHeight == 720)
                 {
                     // ── Static precomputed offset tables ─────────────────────────────────
                     // yParts[y]       : y-contribution to the block-linear framebuffer offset.
@@ -5523,7 +5525,7 @@ namespace tsl {
     // selects. Appeared verbatim in 3 different frame draw() overrides.
     [[gnu::noinline]] inline void drawEdgeSeparator(gfx::Renderer* renderer) {
         if (!ult::useRightAlignment)
-            renderer->drawRect(447, 0, 448, 720, renderer->a(edgeSeparatorColor));
+            renderer->drawRect(447, 0, 1, 720, renderer->a(edgeSeparatorColor));
         else
             renderer->drawRect(0, 0, 1, 720, renderer->a(edgeSeparatorColor));
     }
@@ -6967,10 +6969,30 @@ namespace tsl {
                 if (m_noClickableItems != ult::noClickableItems.load(std::memory_order_acquire)) {
                     ult::noClickableItems.store(m_noClickableItems, std::memory_order_release);
                 }
+
+                // Full can collapse into a transparent widget-only canvas. Keep
+                // framing out of this path: the content drawer renders only the
+                // pinned cards while the game remains visible everywhere else.
+                if (FullMode && fullPanelHidden) {
+                    renderer->fillScreen({ 0x0, 0x0, 0x0, 0x0});
+                    if (this->m_contentElement != nullptr)
+                        this->m_contentElement->frame(renderer);
+                    return;
+                }
                 
                 
                 if (FullMode == true) {
-                    if ((lastMode.empty() || (lastMode.compare("returning") == 0)) &&
+                    if (tsl::cfg::FramebufferWidth > 448) {
+                        // Full's detachable cards need a screen-wide framebuffer.
+                        // Keep everything outside the 448px dashboard transparent
+                        // so the game remains visible under the floating cards.
+                        renderer->fillScreen({ 0x0, 0x0, 0x0, 0x0});
+                        if (!ult::limitedMemory && !ult::refreshWallpaper.load(std::memory_order_acquire) &&
+                            !ult::wallpaperData.empty())
+                            renderer->drawWallpaper();
+                        else
+                            renderer->drawRect(0, 0, 448, 720, a(defaultBackgroundColor));
+                    } else if ((lastMode.empty() || (lastMode.compare("returning") == 0)) &&
                         !ult::limitedMemory && !ult::refreshWallpaper.load(std::memory_order_acquire) &&
                         !ult::wallpaperData.empty() && ult::correctFrameSize)
                         renderer->drawWallpaper();   // bakes bg color — no fillScreen needed
@@ -6992,7 +7014,9 @@ namespace tsl {
                 renderer->drawStringWithColoredSections(renderSubtitle, false, tsl::s_dividerSpecialChars, 20, y+2+23, 15, bannerVersionTextColor, separatorColor);
                 
                 if (FullMode == true)
-                    renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(bottomSeparatorColor));
+                    renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73,
+                                       std::min<u32>(448, tsl::cfg::FramebufferWidth) - 30,
+                                       1, a(bottomSeparatorColor));
                 
                 // Set initial button position
                 static constexpr float buttonStartX = 30;
@@ -13787,7 +13811,24 @@ namespace tsl {
         
         
 
-        void handleInput(u64 keysDown, u64 keysHeld, bool touchDetected, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) {
+        void handleInput(u64 keysDown, u64 keysHeld, const HidTouchScreenState &rawTouchState, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) {
+            const u32 touchCount = rawTouchState.count;
+            const HidTouchState &touchPos = rawTouchState.touches[0];
+            // Tesla's gesture engine is intentionally single-pointer. Treat a
+            // multi-touch sequence (including 2 -> 1 fingers) as cancelled until
+            // every contact is released, otherwise a pinch can be misread as a
+            // footer tap, scroll or edge-hide gesture.
+            static bool multiTouchGestureActive = false;
+            ult::currentTouchCount.store(touchCount, std::memory_order_release);
+            // Copied on the render/input dispatch thread immediately before the
+            // active GUI is called, so custom gestures can safely use contact #2.
+            ult::currentTouchState = rawTouchState;
+            if (touchCount > 1) multiTouchGestureActive = true;
+            const bool touchDetected = touchCount == 1 && !multiTouchGestureActive;
+            if (multiTouchGestureActive)
+                ult::interruptedTouch.store(true, std::memory_order_release);
+            if (touchCount == 0) multiTouchGestureActive = false;
+
             if (!ult::internalTouchReleased.load(std::memory_order_acquire) || ult::launchingOverlay.load(std::memory_order_acquire))
                 return;
 
@@ -16552,7 +16593,7 @@ namespace tsl {
                         {
                             std::scoped_lock lock(shData.dataMutex);
                             if (!overlay->fadeAnimationPlaying()) {
-                                overlay->handleInput(shData.keysDownPending, shData.keysHeld, shData.touchState.count, shData.touchState.touches[0], shData.joyStickPosLeft, shData.joyStickPosRight);
+                                overlay->handleInput(shData.keysDownPending, shData.keysHeld, shData.touchState, shData.joyStickPosLeft, shData.joyStickPosRight);
                             }
                             shData.keysDownPending = 0;
                         }
