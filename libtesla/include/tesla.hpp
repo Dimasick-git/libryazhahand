@@ -14565,6 +14565,12 @@ namespace tsl {
         
             // Allow only Player 1 and handheld mode
             HidNpadIdType id_list[2] = { HidNpadIdType_No1, HidNpadIdType_Handheld };
+
+            // Supported controller styles. Shared with the sleep-button HID
+            // re-bring-up below: a freshly reopened hid session starts with no
+            // npad configuration, so both sites must apply the exact same set.
+            const u32 kOverlayNpadStyles =
+                HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadSystemExt | HidNpadStyleTag_NpadGc;
             
             // Configure HID system to only listen to these IDs
             hidSetSupportedNpadIdType(id_list, 2);
@@ -14573,7 +14579,7 @@ namespace tsl {
             // NpadGc included so GameCube controllers (USB adapter) can drive the
             // overlay UI too — libnx padUpdate() reads HidNpadGcState natively
             // (see Dimasick-git/RyazhaTune#33).
-            padConfigureInput(2, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadSystemExt | HidNpadStyleTag_NpadGc);
+            padConfigureInput(2, kOverlayNpadStyles);
             
             // Initialize separate pad states for both controllers
             auto pad_p1_ptr = std::make_unique<PadState>();
@@ -15512,7 +15518,7 @@ namespace tsl {
                                 ult::foregroundReassertStartTick.store(armGetSystemTick(), std::memory_order_release);
                             }
                             break;
-                        case WaiterObject_PowerButton:
+                        case WaiterObject_PowerButton: {
                             eventClear(&powerButtonPressEvent);
 
                             // The sleep button fires on both sleep entry and wake.
@@ -15523,7 +15529,34 @@ namespace tsl {
                             svcSleepThread(20'000'000ULL); // 20ms — let feedback thread finish
 
                             hidExit();
-                            if (R_SUCCEEDED(hidInitialize())) {
+
+                            // hidInitialize() only reopens the service, creates a NEW
+                            // IAppletResource and maps shared memory -- it does NOT
+                            // activate npad or set the supported id/style sets. Those
+                            // come solely from padConfigureInput(), which used to run
+                            // only once at startup. Without re-applying it here,
+                            // padUpdate() keeps reading a LIFO nobody activated for the
+                            // new resource: the overlay silently loses all input after
+                            // sleep (the open combo is polled on this very thread, so it
+                            // cannot even be reopened) until the overlay process is
+                            // restarted. Whether it bites depends on whether something
+                            // else keeps npad active at that moment, hence the
+                            // intermittent reports.
+                            //
+                            // A few short retries: a failed reopen would otherwise leave
+                            // the session closed for good.
+                            Result hidReopenRc = hidInitialize();
+                            for (int attempt = 0; R_FAILED(hidReopenRc) && attempt < 3; ++attempt) {
+                                svcSleepThread(50'000'000ULL); // 50ms
+                                hidReopenRc = hidInitialize();
+                            }
+                            if (R_SUCCEEDED(hidReopenRc)) {
+                                // Same sequence as startup (see kOverlayNpadStyles).
+                                // padConfigureInput() aborts on IPC failure exactly as it
+                                // does at startup; the session was just reopened
+                                // successfully, so the service is known to be up.
+                                hidSetSupportedNpadIdType(id_list, 2);
+                                padConfigureInput(2, kOverlayNpadStyles);
                                 padInitialize(&pad_p1, HidNpadIdType_No1);
                                 padInitialize(&pad_handheld, HidNpadIdType_Handheld);
                                 hidInitializeTouchScreen();
@@ -15542,6 +15575,7 @@ namespace tsl {
 
                             hidReinitInProgress.store(false, std::memory_order_seq_cst);
                             break;
+                        }
 
 
                         case WaiterObject_CaptureButton:
