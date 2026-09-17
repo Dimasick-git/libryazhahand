@@ -1554,7 +1554,7 @@ namespace ult {
         return success;
     }
 
-    const std::string loaderInfo = envGetLoaderInfo();
+    const std::string loaderInfo = envGetLoaderInfo() ? envGetLoaderInfo() : ""; // NULL outside hbloader/nx-ovlloader (system applet); std::string(NULL) aborts in static init
     std::string loaderTitle = extractTitle(loaderInfo);
 
     bool expandedMemory = false;
