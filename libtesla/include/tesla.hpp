@@ -15797,6 +15797,15 @@ namespace tsl {
 
                             hidExit();
                             if (R_SUCCEEDED(hidInitialize())) {
+                                // hidExit drops the npad configuration: without it the
+                                // buttons stay silent while touch still works.
+                                hidSetSupportedNpadIdType(id_list, 2);
+                                padConfigureInput(2, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadSystemExt | HidNpadStyleTag_NpadGc);
+                            #if IS_OVERLAY_APPLET_DIRECTIVE
+                                hidsysActivateHomeButton();
+                                hidsysActivateCaptureButton();
+                                overlayAppletLog("hid reinit", 0);
+                            #endif
                                 padInitialize(&pad_p1, HidNpadIdType_No1);
                                 padInitialize(&pad_handheld, HidNpadIdType_Handheld);
                                 hidInitializeTouchScreen();
