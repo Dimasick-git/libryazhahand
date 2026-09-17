@@ -1177,6 +1177,160 @@ namespace tsl {
     
     template<typename TOverlay, impl::LaunchFlags launchFlags = impl::LaunchFlags::CloseOnExit>
     int loop(int argc, char** argv);
+
+#if IS_OVERLAY_APPLET_DIRECTIVE
+    /// Built as the system overlay applet (overlayDisp replacement): shown by am
+    /// button messages instead of key combos, and never polls the shared
+    /// notification folder that the Ryzhand menu already consumes.
+    inline constexpr bool overlayAppletMode = true;
+
+    /// Set by __appInit when a service the overlay cannot run without failed.
+    inline bool overlayAppletSafeMode = false;
+
+    namespace gfx { class Renderer; }
+
+    /// Implemented by the application: the heads-up plate (volume, system
+    /// notices) drawn while the quick menu itself is hidden.
+    void overlayAppletDrawHud(gfx::Renderer* renderer);
+    bool overlayAppletHudActive();
+
+    /// Implemented by the application: called from the background thread on
+    /// every capture button event (press and release).
+    void overlayAppletOnCaptureButton();
+
+    /// Implemented by the application: called from the background thread on
+    /// every HOME button event (press and release).
+    void overlayAppletOnHomeButton();
+
+    /// pl (shared font) is often not ready yet when am starts the overlay applet.
+    inline bool overlayAppletPlReady = false;
+
+    /// am messages are drained by a thread started in __appInit, before C++ static
+    /// init and main: am aborts when its overlay applet stops taking messages.
+    /// Button messages are queued here as bits for the Tesla poller.
+    inline std::atomic<u32>  overlayAppletPendingMessages{0};
+    inline std::atomic<bool> overlayAppletExitRequested{false};
+
+    inline constexpr u32 overlayAppletMessageBit(u32 message) {
+        return message < 30 ? (1u << message) : message == 92 ? (1u << 30) : message == 93 ? (1u << 31) : 0;
+    }
+
+    /// am does not always report a long HOME press (not while a game runs), so the
+    /// application may detect it too; whichever comes first within 2 s wins.
+    inline std::atomic<u64> overlayAppletLongHomeNs{0};
+
+    inline bool overlayAppletClaimLongHome() {
+        const u64 now = armTicksToNs(armGetSystemTick());
+        const u64 last = overlayAppletLongHomeNs.load(std::memory_order_acquire);
+        if (last != 0 && now - last < 2'000'000'000ULL) return false;
+        overlayAppletLongHomeNs.store(now, std::memory_order_release);
+        return true;
+    }
+
+    enum class OverlayAppletAction : u8 { None, Show, Hide, Exit };
+
+    /// Implemented by the application; called from the background thread for
+    /// every am message.
+    OverlayAppletAction overlayAppletHandleMessage(u32 message, bool overlayOpen);
+
+    // am owns the overlay applet's layer; vi may refuse cosmetic tweaks to it.
+    #define TSL_LAYER_SETUP(expr) ((void)(expr))
+
+    #ifndef TSL_OVERLAY_APPLET_LOG_PATH
+    #define TSL_OVERLAY_APPLET_LOG_PATH "sdmc:/config/sys-quick/log.txt"
+    #endif
+    #ifndef TSL_OVERLAY_APPLET_DEBUG_FLAG
+    #define TSL_OVERLAY_APPLET_DEBUG_FLAG "sdmc:/config/sys-quick/debug.flag"
+    #endif
+
+    /// The log is written only while the debug flag file exists on the SD card.
+    inline bool overlayAppletLogEnabled() {
+        static int state = -1;
+        if (state < 0) {
+            struct stat st;
+            state = stat(TSL_OVERLAY_APPLET_DEBUG_FLAG, &st) == 0 ? 1 : 0;
+        }
+        return state == 1;
+    }
+
+    inline void overlayAppletLog(const char* step, Result rc) {
+        if (!overlayAppletLogEnabled()) return;
+        if (FILE* f = fopen(TSL_OVERLAY_APPLET_LOG_PATH, "a")) {
+            fprintf(f, "screen %-8s 0x%X\n", step, rc);
+            fclose(f);
+        }
+    }
+
+    // Screen setup still has to succeed, but each step is logged first.
+    #define TSL_VI_REQUIRE(step, expr) do { const Result tslViRc = (expr); tsl::overlayAppletLog(step, tslViRc); ASSERT_FATAL(tslViRc); } while (0)
+
+    // An applet opens vi layers with its own aruid, so the managed layer must be
+    // created for that aruid too (nx-ovlloader overlays are not applets: aruid 0).
+    #define TSL_LAYER_ARUID appletGetAppletResourceUserId()
+
+    // Atmosphere gives the applet resource group EventCountMax = 0, so
+    // svcCreateEvent fails there and Tesla's own wake-up events (combo and
+    // notification) would be invalid handles. Such events become user-space
+    // flags polled by the main loop; events received from services stay real.
+    struct OverlayAppletFakeEvent {
+        Event* event = nullptr;
+        std::atomic<bool> signaled{false};
+    };
+    inline OverlayAppletFakeEvent overlayAppletFakeEvents[4];
+
+    inline OverlayAppletFakeEvent* overlayAppletFindFake(const Event* e) {
+        for (auto& fake : overlayAppletFakeEvents)
+            if (fake.event == e) return &fake;
+        return nullptr;
+    }
+
+    inline Result overlayAppletEventCreate(Event* e, bool autoclear) {
+        const Result rc = ::eventCreate(e, autoclear);
+        if (R_SUCCEEDED(rc)) return rc;
+        for (auto& fake : overlayAppletFakeEvents) {
+            if (fake.event == nullptr || fake.event == e) {
+                *e = Event{};
+                fake.signaled.store(false, std::memory_order_release);
+                fake.event = e;
+                return 0;
+            }
+        }
+        return rc;
+    }
+
+    inline Result overlayAppletEventFire(Event* e) {
+        if (auto* fake = overlayAppletFindFake(e)) { fake->signaled.store(true, std::memory_order_release); return 0; }
+        return ::eventFire(e);
+    }
+
+    inline Result overlayAppletEventClear(Event* e) {
+        if (auto* fake = overlayAppletFindFake(e)) { fake->signaled.store(false, std::memory_order_release); return 0; }
+        return ::eventClear(e);
+    }
+
+    inline void overlayAppletEventClose(Event* e) {
+        if (auto* fake = overlayAppletFindFake(e)) { fake->event = nullptr; fake->signaled.store(false, std::memory_order_release); return; }
+        ::eventClose(e);
+    }
+
+    inline bool overlayAppletEventSignaled(const Event* e) {
+        if (auto* fake = overlayAppletFindFake(e)) return fake->signaled.load(std::memory_order_acquire);
+        return e->revent != INVALID_HANDLE && R_SUCCEEDED(svcWaitSynchronizationSingle(e->revent, 0));
+    }
+
+    #define eventCreate(e, autoclear) tsl::overlayAppletEventCreate(e, autoclear)
+    #define eventFire(e)  tsl::overlayAppletEventFire(e)
+    #define eventClear(e) tsl::overlayAppletEventClear(e)
+    #define eventClose(e) tsl::overlayAppletEventClose(e)
+#else
+    inline constexpr bool overlayAppletMode = false;
+
+    inline bool overlayAppletHudActive() { return false; }
+
+    #define TSL_LAYER_SETUP(expr) ASSERT_FATAL(expr)
+    #define TSL_VI_REQUIRE(step, expr) ASSERT_FATAL(expr)
+    #define TSL_LAYER_ARUID 0
+#endif
     
     // Helpers
     
@@ -4867,11 +5021,11 @@ namespace tsl {
                     }
                     if (!ult::hideSOCTemp && socTemp > 0.0f) {
                         if (!ult::hidePCBTemp || !ult::hideBattery) offset -= 5;
-                        socWidth = getTextDimensions(SOC_temperatureStr, false, 20).first;
+                        socWidth = getTextDimensions(SOC_temperatureStr, false, 18).first;
                         drawString(
                             SOC_temperatureStr, false,
                             tsl::cfg::FramebufferWidth + offset - socWidth - pcbWidth - chargeWidth - 25,
-                            y_offset, 20,
+                            y_offset, 18,
                             ult::dynamicWidgetColors
                                 ? tsl::GradientColor(socTemp)
                                 : defaultTextColor
@@ -5217,6 +5371,9 @@ namespace tsl {
                 const auto [horizontalUnderscanPixels, verticalUnderscanPixels] = getUnderscanPixels();
                 
                 ult::useRightAlignment = (ult::parseValueFromIniSection(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, "right_alignment") == ult::TRUE_STR);
+            #if IS_OVERLAY_APPLET_DIRECTIVE
+                ult::useRightAlignment = true;
+            #endif
 
                 cfg::LayerPosX = 0;
                 cfg::LayerPosY = 0;
@@ -5319,40 +5476,40 @@ namespace tsl {
                 
                 tsl::hlp::doWithSmSession([this, horizontalUnderscanPixels]{
 
-                    ASSERT_FATAL(viInitialize(ViServiceType_Manager));
-                    ASSERT_FATAL(viOpenDefaultDisplay(&this->m_display));
-                    ASSERT_FATAL(viGetDisplayVsyncEvent(&this->m_display, &this->m_vsyncEvent));
-                    ASSERT_FATAL(viCreateManagedLayer(&this->m_display, static_cast<ViLayerFlags>(0), 0, &__nx_vi_layer_id));
-                    ASSERT_FATAL(viCreateLayer(&this->m_display, &this->m_layer));
-                    ASSERT_FATAL(viSetLayerScalingMode(&this->m_layer, ViScalingMode_FitToLayer));
+                    TSL_VI_REQUIRE("vi", viInitialize(ViServiceType_Manager));
+                    TSL_VI_REQUIRE("display", viOpenDefaultDisplay(&this->m_display));
+                    TSL_VI_REQUIRE("vsync", viGetDisplayVsyncEvent(&this->m_display, &this->m_vsyncEvent));
+                    TSL_VI_REQUIRE("mlayer", viCreateManagedLayer(&this->m_display, static_cast<ViLayerFlags>(0), TSL_LAYER_ARUID, &__nx_vi_layer_id));
+                    TSL_VI_REQUIRE("vlayer", viCreateLayer(&this->m_display, &this->m_layer));
+                    TSL_LAYER_SETUP(viSetLayerScalingMode(&this->m_layer, ViScalingMode_FitToLayer));
 
                     if (horizontalUnderscanPixels == 0) {
                         s32 layerZ = 0;
                         if (R_SUCCEEDED(viGetZOrderCountMax(&this->m_display, &layerZ)) && layerZ > 0) {
-                            ASSERT_FATAL(viSetLayerZ(&this->m_layer, layerZ));
+                            TSL_LAYER_SETUP(viSetLayerZ(&this->m_layer, layerZ));
                         }
                         else {
-                            ASSERT_FATAL(viSetLayerZ(&this->m_layer, 255)); // max value 255 as fallback
+                            TSL_LAYER_SETUP(viSetLayerZ(&this->m_layer, 255)); // max value 255 as fallback
                         }
                     } else {
-                        ASSERT_FATAL(viSetLayerZ(&this->m_layer, 34)); // 34 is the edge for underscanning
+                        TSL_LAYER_SETUP(viSetLayerZ(&this->m_layer, 34)); // 34 is the edge for underscanning
                     }
 
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Default));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Screenshot));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Recording));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Arbitrary));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_LastFrame));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Null));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_ApplicationForDebug));
-                    ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Lcd));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Default));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Screenshot));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Recording));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Arbitrary));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_LastFrame));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Null));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_ApplicationForDebug));
+                    TSL_LAYER_SETUP(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Lcd));
                     
-                    ASSERT_FATAL(viSetLayerSize(&this->m_layer, cfg::LayerWidth, cfg::LayerHeight));
-                    ASSERT_FATAL(viSetLayerPosition(&this->m_layer, cfg::LayerPosX, cfg::LayerPosY));
-                    ASSERT_FATAL(nwindowCreateFromLayer(&this->m_window, &this->m_layer));
-                    ASSERT_FATAL(framebufferCreate(&this->m_framebuffer, &this->m_window, cfg::FramebufferWidth, cfg::FramebufferHeight, PIXEL_FORMAT_RGBA_4444, 2));
-                    ASSERT_FATAL(setInitialize());
-                    ASSERT_FATAL(this->initFonts());
+                    TSL_LAYER_SETUP(viSetLayerSize(&this->m_layer, cfg::LayerWidth, cfg::LayerHeight));
+                    TSL_LAYER_SETUP(viSetLayerPosition(&this->m_layer, cfg::LayerPosX, cfg::LayerPosY));
+                    TSL_VI_REQUIRE("window", nwindowCreateFromLayer(&this->m_window, &this->m_layer));
+                    TSL_VI_REQUIRE("fb", framebufferCreate(&this->m_framebuffer, &this->m_window, cfg::FramebufferWidth, cfg::FramebufferHeight, PIXEL_FORMAT_RGBA_4444, 2));
+                    TSL_VI_REQUIRE("set", setInitialize());
+                    TSL_VI_REQUIRE("fonts", this->initFonts());
                     setExit();
                 });
                 
@@ -6311,7 +6468,8 @@ namespace tsl {
                     const Color bgColorToUse = hasCustomBGColor
                         ? Color(customBGColor.r, customBGColor.g, customBGColor.b, tableBGColor.a)
                         : tableBGColor;
-                    renderer->drawRoundedRect(this->getX() + 8, this->getY()-4, this->getWidth() - 1, this->getHeight() + 22 - endGap-2, 12.0, aWithOpacity(bgColorToUse));
+                    const s32 backgroundHeight = std::max<s32>(1, this->getHeight() - static_cast<s32>(endGap) + 8);
+                    renderer->drawRoundedRect(this->getX() + 8, this->getY()-4, this->getWidth() - 1, backgroundHeight, 12.0, aWithOpacity(bgColorToUse));
                     if (drawTableBorder) {
                         const Switch2Wheel w2 = makeSwitch2Wheel(
                             s2TableBorderColor1,      // anchor[0] UR — fixed peak:  Muted Violet-Steel (default)  (r=7, g=5, b=F, a=F)
@@ -6323,7 +6481,7 @@ namespace tsl {
                             12.0,
                             true
                         );
-                        renderer->drawBorderedRoundedRect(this->getX() +8-1, this->getY() - 4-1, this->getWidth() - 1 + 2, this->getHeight() + 22 - endGap - 2 + 2, 1, 12, a(tableBorderColor), ult::useDynamicTableColors ? &w2 : nullptr);
+                        renderer->drawBorderedRoundedRect(this->getX() +8-1, this->getY() - 4-1, this->getWidth() - 1 + 2, backgroundHeight + 2, 1, 12, a(tableBorderColor), ult::useDynamicTableColors ? &w2 : nullptr);
                     }
                 }
                 
@@ -10035,7 +10193,7 @@ namespace tsl {
          */
         class CompactListItem : public ListItem {
         public:
-            CompactListItem(const std::string& text, const std::string& value = "")
+            CompactListItem(const std::string& text, const std::string& value = "", bool = true)
                 : ListItem(text, value, true) {}
 
             void drawSeparators(gfx::Renderer*) override {}
@@ -10044,7 +10202,7 @@ namespace tsl {
         /** Silent action row using the same compact metrics. */
         class CompactSilentListItem : public SilentListItem {
         public:
-            CompactSilentListItem(const std::string& text, const std::string& value = "")
+            CompactSilentListItem(const std::string& text, const std::string& value = "", bool = true)
                 : SilentListItem(text, value, true) {}
 
             void drawSeparators(gfx::Renderer*) override {}
@@ -10422,8 +10580,9 @@ namespace tsl {
         public:
             CompactToggleListItem(const std::string& text, bool initialState,
                                   const std::string& onValue = ult::ON,
-                                  const std::string& offValue = ult::OFF)
-                : ToggleListItem(text, initialState, onValue, offValue, true) {}
+                                  const std::string& offValue = ult::OFF,
+                                  bool = true, bool delayedHandle = false)
+                : ToggleListItem(text, initialState, onValue, offValue, true, delayedHandle) {}
 
             void drawSeparators(gfx::Renderer*) override {}
 
@@ -13946,6 +14105,9 @@ namespace tsl {
                     }
                 }
                 renderer.clearScreen();
+            #if IS_OVERLAY_APPLET_DIRECTIVE
+                overlayAppletDrawHud(&renderer);
+            #endif
             }
         
             // Notification handling — safe, consistent, and null-guarded
@@ -14958,6 +15120,43 @@ namespace tsl {
 
                 u64 nowTick = armGetSystemTick();
                 u64 nowNs = armTicksToNs(nowTick);
+
+            #if IS_OVERLAY_APPLET_DIRECTIVE
+                {
+                    static bool exitHandled = false;
+                    const u32 pendingMessages = overlayAppletPendingMessages.exchange(0, std::memory_order_acq_rel);
+                    static constexpr u32 handledMessages[] = { 21, 20, 23, 92, 93 };
+                    for (const u32 appletMessage : handledMessages) {
+                        if (!(pendingMessages & overlayAppletMessageBit(appletMessage))) continue;
+                        const bool open = shData->overlayOpen.load(std::memory_order_acquire);
+                        switch (overlayAppletHandleMessage(appletMessage, open)) {
+                            case OverlayAppletAction::Show:
+                                if (!open) {
+                                    eventFire(&shData->comboEvent);
+                                    mainComboHasTriggered.store(true, std::memory_order_release);
+                                }
+                                break;
+                            case OverlayAppletAction::Hide:
+                                if (open) {
+                                    tsl::Overlay::get()->hide();
+                                    shData->overlayOpen = false;
+                                }
+                                break;
+                            case OverlayAppletAction::Exit:
+                                tsl::Overlay::get()->close(true);
+                                eventFire(&shData->comboEvent);
+                                break;
+                            case OverlayAppletAction::None:
+                                break;
+                        }
+                    }
+                    if (!exitHandled && overlayAppletExitRequested.load(std::memory_order_acquire)) {
+                        exitHandled = true;
+                        tsl::Overlay::get()->close(true);
+                        eventFire(&shData->comboEvent);
+                    }
+                }
+            #endif
                 
                 // Scan for input changes from both controllers
                 padUpdate(&pad_p1);
@@ -15088,7 +15287,7 @@ namespace tsl {
                     {
                         std::lock_guard<std::mutex> jsonLock(notificationJsonMutex);
 
-                        if (armTicksToNs(nowTick - lastNotifCheck) >= 300'000'000ULL) {
+                        if (!tsl::overlayAppletMode && armTicksToNs(nowTick - lastNotifCheck) >= 300'000'000ULL) {
                             lastNotifCheck = nowTick;
 
                             DIR* dir = opendir(ult::NOTIFICATIONS_PATH.c_str());
@@ -15305,7 +15504,7 @@ namespace tsl {
                     // Swipe detection (uses only local variables, safe outside lock)
                     if (hasTouchNow) {
                         const u64 elapsedTime_ns = armTicksToNs(nowTick - currentTouchTick);
-                        if (ult::useSwipeToOpen && elapsedTime_ns <= TOUCH_THRESHOLD_NS) {
+                        if (!tsl::overlayAppletMode && ult::useSwipeToOpen && elapsedTime_ns <= TOUCH_THRESHOLD_NS) {
                             if ((lastTouchX != 0 && lastTouchY != 0) && (currentTouch.x != 0 || currentTouch.y != 0)) {
                                 // "swipe_offset" (config.ini) shifts the whole swipe zone
                                 // inward from the screen edge for deadzone calibration:
@@ -15388,7 +15587,7 @@ namespace tsl {
                     }
 
                     // KEY_MINUS: hold 3s to toggle notifications
-                    if (ult::useNotificationsHotkey && tsl::cfg::launchCombo  != KEY_MINUS
+                    if (!tsl::overlayAppletMode && ult::useNotificationsHotkey && tsl::cfg::launchCombo  != KEY_MINUS
                                                     && tsl::cfg::launchCombo2 != KEY_MINUS) {
                         const bool minusAlone = (shData->keysHeld & KEY_MINUS)
                                              && !(shData->keysHeld & ~KEY_MINUS & ALL_KEYS_MASK);
@@ -15426,7 +15625,7 @@ namespace tsl {
                     }
 
                     // Check main launch combo first (highest priority)
-                    if ((((shData->keysHeld & tsl::cfg::launchCombo) == tsl::cfg::launchCombo) && shData->keysDown & tsl::cfg::launchCombo)) {
+                    if (!tsl::overlayAppletMode && (((shData->keysHeld & tsl::cfg::launchCombo) == tsl::cfg::launchCombo) && shData->keysDown & tsl::cfg::launchCombo)) {
                     #if IS_LAUNCHER_DIRECTIVE
                         if (ult::updateMenuCombos) {
                             ult::setIniFileValue(ult::RYZHAND_CONFIG_INI_PATH, ult::RYZHAND_PROJECT_NAME, ult::KEY_COMBO_STR , ult::RYZHAND_COMBO_STR);
@@ -15501,7 +15700,7 @@ namespace tsl {
                     }
                 #endif
                     // Check overlay key combos (only when overlay is not open, keys are pressed, and not conflicting with main combos)
-                    else if (shData->keysDown != 0 && ult::useLaunchCombos) {
+                    else if (!tsl::overlayAppletMode && shData->keysDown != 0 && ult::useLaunchCombos) {
                         if (shData->keysHeld != tsl::cfg::launchCombo) {
                             // Lookup both path and optional mode launch args
                             const auto comboInfo = tsl::hlp::getEntryForKeyCombo(shData->keysHeld);
@@ -15776,7 +15975,7 @@ namespace tsl {
                     }
         #else
                     if (idx == WaiterObject_HomeButton || idx == WaiterObject_PowerButton) { // Changed condition to exclude capture button
-                        if (shData->overlayOpen && !disableHiding) {
+                        if (!tsl::overlayAppletMode && shData->overlayOpen && !disableHiding) { // overlay applet: HOME/power release must not close the quick menu; am sends short HOME as msg 20
                             tsl::Overlay::get()->hide();
                             shData->overlayOpen = false;
                         } else if (idx == WaiterObject_HomeButton && disableHiding) {
@@ -15791,6 +15990,10 @@ namespace tsl {
                     switch (idx) {
                         case WaiterObject_HomeButton:
                             eventClear(&homeButtonPressEvent);
+                        #if IS_OVERLAY_APPLET_DIRECTIVE
+                            overlayAppletLog("hidshome", shData->overlayOpen ? 1 : 0);
+                            overlayAppletOnHomeButton();
+                        #endif
                             {
                                 // Write current tick so sysmodules can compare against their
                                 // own tid-change tick to detect HOME pressed during loading.
@@ -15871,6 +16074,9 @@ namespace tsl {
         
                             ult::disableTransparency = true;
                             eventClear(&captureButtonPressEvent);
+                        #if IS_OVERLAY_APPLET_DIRECTIVE
+                            overlayAppletOnCaptureButton();
+                        #endif
                             svcSleepThread(1'500'000'000);
                             ult::disableTransparency = false;
         
@@ -16655,7 +16861,19 @@ namespace tsl {
                 
                 // Wait for events only if no active notification
                 if (!(notification && notification->isActive())) {
-                    svcWaitSynchronization(&index, handles, 2, UINT64_MAX);
+                    {
+                    #if IS_OVERLAY_APPLET_DIRECTIVE
+                        (void)handles;
+                        while (shData.running.load(std::memory_order_acquire)) {
+                            if (overlayAppletEventSignaled(&shData.comboEvent))  { index = 0; break; }
+                            if (overlayAppletEventSignaled(&notificationEvent)) { index = 1; break; }
+                            svcSleepThread(10'000'000ULL);
+                        }
+                        overlayAppletLog("wake", static_cast<Result>(index));
+                    #else
+                        svcWaitSynchronization(&index, handles, 2, UINT64_MAX);
+                    #endif
+                    }
                 }
                 eventClear(&notificationEvent);
                 eventClear(&shData.comboEvent);
@@ -16709,7 +16927,7 @@ namespace tsl {
                             break;
                         }
                         
-                        if (!(notification && notification->isActive())) {
+                        if (!(notification && notification->isActive()) && !overlayAppletHudActive()) {
                             break;
                         }
                     }
@@ -16752,6 +16970,9 @@ namespace tsl {
                     hlp::requestForeground(true);
     #endif
     
+                    #if IS_OVERLAY_APPLET_DIRECTIVE
+                    overlayAppletLog("show", 0);
+                    #endif
                     overlay->show();
                     if (!comboBreakout && !(notification && notification->isActive()))
                         overlay->clearScreen();
@@ -16848,6 +17069,9 @@ namespace tsl {
                  #endif
     
                     if (overlay->shouldHide()) {
+                    #if IS_OVERLAY_APPLET_DIRECTIVE
+                        overlayAppletLog("hide", 0);
+                    #endif
                         if (overlay->shouldCloseAfter()) {
                             if (!directMode) {
                                 shData.running.store(false, std::memory_order_release);
@@ -16936,16 +17160,118 @@ extern "C" void __libnx_init_time(void);
 
 extern "C" {
     
+#if IS_OVERLAY_APPLET_DIRECTIVE
+    u32 __nx_applet_type = AppletType_OverlayApplet;
+#else
     u32 __nx_applet_type = AppletType_None;
+#endif
     u32 __nx_fs_num_sessions = 1;
     u32  __nx_nv_transfermem_size = 0x15000;
     ViLayerFlags __nx_vi_stray_layer_flags = (ViLayerFlags)0;
+
+#if IS_OVERLAY_APPLET_DIRECTIVE
+    /* The overlay applet starts with every boot, so a failed service must not
+     * end in fatal: each step is logged and the application falls back to an
+     * idle safe mode instead (see tsl::overlayAppletSafeMode). */
+    static void overlayAppletBootLog(const char* step, Result rc) {
+        if (!tsl::overlayAppletLogEnabled()) return;
+        FILE* f = fopen(TSL_OVERLAY_APPLET_LOG_PATH, "a");
+        if (!f) return;
+        fprintf(f, "init %-8s 0x%X\n", step, rc);
+        fclose(f);
+    }
+
+    static void overlayAppletInitStep(const char* step, Result rc, bool critical) {
+        overlayAppletBootLog(step, rc);
+        if (R_FAILED(rc) && critical) tsl::overlayAppletSafeMode = true;
+    }
+
+    static Thread overlayAppletPumpThread;
+
+    static void overlayAppletMessagePump(void*) {
+        u32 logged = 0;
+        while (!tsl::overlayAppletExitRequested.load(std::memory_order_acquire)) {
+            u32 message = 0;
+            while (R_SUCCEEDED(appletGetMessage(&message))) {
+                if (logged < 64) { overlayAppletBootLog("msg", message); ++logged; }
+                const bool button = message == 20 || message == 21 || message == 23 || message == 92 || message == 93;
+                if (button) {
+                    if (message != 21 || tsl::overlayAppletClaimLongHome())
+                        tsl::overlayAppletPendingMessages.fetch_or(tsl::overlayAppletMessageBit(message), std::memory_order_acq_rel);
+                } else if (!appletProcessMessage(message)) {
+                    tsl::overlayAppletExitRequested.store(true, std::memory_order_release);
+                }
+            }
+            svcSleepThread(10'000'000ULL);
+        }
+    }
+#endif
     
     /**
      * @brief libtesla service initializing function to override libnx's
      *
      */
     void __appInit(void) {
+    #if IS_OVERLAY_APPLET_DIRECTIVE
+        if (R_FAILED(smInitialize())) {
+            tsl::overlayAppletSafeMode = true;
+            return;
+        }
+        if (R_SUCCEEDED(fsInitialize())) fsdevMountSdmc();
+        overlayAppletBootLog("----", 0);
+        {
+            // libnx gates services by the HOS version, which a sysmodule-style
+            // __appInit has to set itself (otherwise calls fail with 0x4B59).
+            Result verRc = setsysInitialize();
+            if (R_SUCCEEDED(verRc)) {
+                SetSysFirmwareVersion fw{};
+                verRc = setsysGetFirmwareVersion(&fw);
+                if (R_SUCCEEDED(verRc)) hosversionSet(MAKEHOSVERSION(fw.major, fw.minor, fw.micro));
+                setsysExit();
+            }
+            overlayAppletInitStep("hosver", verRc, false);
+        }
+        overlayAppletInitStep("applet", appletInitialize(), true);   // am messages for HOME / power buttons
+        if (!tsl::overlayAppletSafeMode) {
+            Result pumpRc = threadCreate(&overlayAppletPumpThread, overlayAppletMessagePump, nullptr, nullptr, 0x4000, 0x2c, -2);
+            if (R_SUCCEEDED(pumpRc)) pumpRc = threadStart(&overlayAppletPumpThread);
+            overlayAppletInitStep("pump", pumpRc, false);
+        }
+        {
+            // am expects its overlay applet to own a managed display layer, as the
+            // stock overlayDisp does; the renderer opens this layer later.
+            u64 layerId = 0;
+            const Result layerRc = appletCreateManagedDisplayLayer(&layerId);
+            overlayAppletInitStep("layer", layerRc, false);
+            if (R_SUCCEEDED(layerRc)) tsl::gfx::__nx_vi_layer_id = layerId;
+        }
+        overlayAppletInitStep("hid", hidInitialize(), true);
+        {
+            // Not critical here: main retries while the pump keeps am served.
+            Result plRc = plInitialize(PlServiceType_User);
+            if (R_FAILED(plRc)) plRc = plInitialize(PlServiceType_System);
+            overlayAppletInitStep("pl", plRc, false);
+            tsl::overlayAppletPlReady = R_SUCCEEDED(plRc);
+        }
+        overlayAppletInitStep("pmdmnt", pmdmntInitialize(), false);
+        overlayAppletInitStep("hidsys", hidsysInitialize(), true);
+        overlayAppletInitStep("setsys", setsysInitialize(), false);
+        if R_SUCCEEDED(timeInitialize()) {
+            __libnx_init_time();
+            timeExit();
+        }
+        #if USING_WIDGET_DIRECTIVE
+        ult::powerInit();
+        i2cInitialize();
+        #endif
+        // spl and spsm are not needed by the quick menu. The overlay applet lives
+        // for the whole session, and a session held here is one fewer for homebrew
+        // such as Daybreak (sm OutOfSessions, 2021-0003, seen on 20.3.0).
+        eventCreate(&tsl::notificationEvent, false);
+        tsl::notification = new tsl::NotificationPrompt();
+        overlayAppletBootLog("done", 0);
+        return;
+    #endif
         ASSERT_FATAL(smInitialize()); // needed to prevent issues with powering device into sleep
         
         ASSERT_FATAL(fsInitialize());
@@ -17010,6 +17336,9 @@ extern "C" {
         pmdmntExit();
         hidsysExit();
         setsysExit();
+        #if IS_OVERLAY_APPLET_DIRECTIVE
+        appletExit();
+        #endif
         smExit();
 
         // Final cleanup

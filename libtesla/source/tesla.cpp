@@ -641,6 +641,19 @@ namespace hlp {
                 enabled ? armGetSystemTick() : 0, std::memory_order_release);
         }
 
+    #if IS_OVERLAY_APPLET_DIRECTIVE
+        // A system overlay applet receives exclusive input through am while it
+        // watches short HOME presses; switching hid:sys aruids here would also
+        // cut off our own applet (0x010000000000100C is inside the range below).
+        static std::atomic<bool> watchingInput{false};
+        if (watchingInput.exchange(enabled, std::memory_order_acq_rel) != enabled) {
+            const Result rc = enabled ? appletBeginToWatchShortHomeButtonMessage()
+                                      : appletEndToWatchShortHomeButtonMessage();
+            overlayAppletLog(enabled ? "watchon" : "watchoff", rc);
+        }
+        return;
+    #endif
+
         u64 applicationAruid = 0, appletAruid = 0;
 
         for (u64 programId = 0x0100000000001000UL; programId < 0x0100000000001020UL; programId++) {
