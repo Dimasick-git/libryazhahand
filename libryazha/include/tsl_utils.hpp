@@ -368,6 +368,16 @@ namespace ult {
     extern std::string FAVORITE;
     extern std::string MAIN_SETTINGS;
     extern std::string UI_SETTINGS;
+    extern std::string SETTINGS_OVERVIEW_DESC;
+    extern std::string UI_OVERVIEW_DESC;
+    extern std::string THEME_OVERVIEW_DESC;
+    extern std::string SOUNDS_OVERVIEW_DESC;
+    extern std::string WALLPAPER_OVERVIEW_DESC;
+    extern std::string WIDGET_OVERVIEW_DESC;
+    extern std::string FEATURES_OVERVIEW_DESC;
+    extern std::string INTERFACE_OVERVIEW_DESC;
+    extern std::string UPDATES_OVERVIEW_DESC;
+    extern std::string DEVICE_OVERVIEW_DESC;
     extern std::string INPUT;      // libryazhahand#16: Input settings category
     extern std::string HOLD_TIME;  // libryazhahand#16: long-press duration label
 

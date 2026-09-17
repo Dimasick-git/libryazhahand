@@ -428,6 +428,16 @@ namespace ult {
     std::string FAVORITE;
     std::string MAIN_SETTINGS;
     std::string UI_SETTINGS;
+    std::string SETTINGS_OVERVIEW_DESC;
+    std::string UI_OVERVIEW_DESC;
+    std::string THEME_OVERVIEW_DESC;
+    std::string SOUNDS_OVERVIEW_DESC;
+    std::string WALLPAPER_OVERVIEW_DESC;
+    std::string WIDGET_OVERVIEW_DESC;
+    std::string FEATURES_OVERVIEW_DESC;
+    std::string INTERFACE_OVERVIEW_DESC;
+    std::string UPDATES_OVERVIEW_DESC;
+    std::string DEVICE_OVERVIEW_DESC;
     std::string INPUT;       // libryazhahand#16
     std::string HOLD_TIME;   // libryazhahand#16
     std::string WIDGET;
@@ -676,6 +686,16 @@ namespace ult {
         {&FAVORITE,                   "FAVORITE",                   "Favorite"},
         {&MAIN_SETTINGS,              "MAIN_SETTINGS",              "Main Settings"},
         {&UI_SETTINGS,                "UI_SETTINGS",                "UI Settings"},
+        {&SETTINGS_OVERVIEW_DESC,     "SETTINGS_OVERVIEW_DESC",     "Controls, language, system tools and appearance in one place."},
+        {&UI_OVERVIEW_DESC,           "UI_OVERVIEW_DESC",           "Choose colors, themes, sounds, wallpaper and widget layout."},
+        {&THEME_OVERVIEW_DESC,        "THEME_OVERVIEW_DESC",        "Choose a visual theme. Changes are applied immediately."},
+        {&SOUNDS_OVERVIEW_DESC,       "SOUNDS_OVERVIEW_DESC",       "Choose the feedback pack used for navigation and actions."},
+        {&WALLPAPER_OVERVIEW_DESC,    "WALLPAPER_OVERVIEW_DESC",    "Choose the background image and tune its color filter."},
+        {&WIDGET_OVERVIEW_DESC,       "WIDGET_OVERVIEW_DESC",       "Choose which indicators are shown and how the widget is aligned."},
+        {&FEATURES_OVERVIEW_DESC,     "FEATURES_OVERVIEW_DESC",     "System behavior, controller feedback, notifications and extra tools."},
+        {&INTERFACE_OVERVIEW_DESC,    "INTERFACE_OVERVIEW_DESC",    "Tune selection, tables, transitions, gestures and panel side."},
+        {&UPDATES_OVERVIEW_DESC,      "UPDATES_OVERVIEW_DESC",      "Automatic checks are optional. Manual scanning never freezes the menu."},
+        {&DEVICE_OVERVIEW_DESC,       "DEVICE_OVERVIEW_DESC",       "Hardware, firmware, storage and the memory available to overlays."},
         // libryazhahand#16 — Input settings for configurable hold duration.
         {&INPUT,                      "INPUT",                      "Input"},
         {&HOLD_TIME,                  "HOLD_TIME",                  "Hold Time"},

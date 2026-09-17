@@ -966,6 +966,8 @@ namespace tsl {
         constexpr u32 MiniListItemLabelFontSize     = 19;       ///< Compact list item label font
         constexpr u32 ListItemValueFontSize         = 20;       ///< Standard list item value font
         constexpr u32 MiniListItemValueFontSize     = 17;       ///< Compact list item value font
+        constexpr u32 CompactDescriptionFontSize    = 15;       ///< Compact helper/description font
+        constexpr u32 CompactDescriptionLineHeight  = 19;       ///< Baseline distance for wrapped descriptions
         constexpr u8  ListItemHighlightSaturation   = 7;        ///< Maximum saturation of Listitem highlights
         constexpr u8  ListItemHighlightLength       = 22;       ///< Maximum length of Listitem highlights
 
@@ -10759,6 +10761,152 @@ namespace tsl {
             void layout(u16, u16, u16, u16) override {
                 this->setBoundaries(this->getX(), this->getY(), this->getWidth(), 33);
             }
+        };
+
+        /**
+         * @brief Non-focusable, translated helper text for dense settings screens.
+         *
+         * The element wraps by measured word width, honours explicit newlines and
+         * recalculates only when its text or available width changes. A short accent
+         * rail separates explanatory copy from interactive rows without another card.
+         */
+        class CompactDescription : public Element {
+        public:
+            explicit CompactDescription(const std::string& text,
+                                        u32 fontSize = style::CompactDescriptionFontSize)
+                : m_text(text), m_fontSize(fontSize) {
+                ult::applyLangReplacements(m_text);
+                {
+                    std::shared_lock<std::shared_mutex> readLock(gfx::s_translationCacheMutex);
+                    const auto it = ult::translationCache.find(m_text);
+                    if (it != ult::translationCache.end()) m_text = it->second;
+                }
+                gfx::translateStringSegments(m_text, s_dividerSpecialChars);
+                m_isItem = false;
+                setBoundaries(0, 0, 0,
+                              kPaddingTop + style::CompactDescriptionLineHeight + kPaddingBottom);
+            }
+
+            void setText(const std::string& text) {
+                if (m_text == text) return;
+                m_text = text;
+                ult::applyLangReplacements(m_text);
+                m_wrappedWidth = -1;
+                invalidate();
+            }
+
+            void draw(gfx::Renderer* renderer) override {
+                if (m_lines.empty()) return;
+                const Color base = defaultTextColor;
+                const Color mutedColor(
+                    static_cast<u8>((base.r * 3 + 1) / 5),
+                    static_cast<u8>((base.g * 3 + 1) / 5),
+                    static_cast<u8>((base.b * 3 + 1) / 5), base.a);
+
+                const s32 railX = getX() + kLeftInset - 10;
+                renderer->drawRoundedRectSingleThreaded(
+                    railX, getY() + kPaddingTop - 11, 2,
+                    static_cast<s32>(m_lines.size()) * style::CompactDescriptionLineHeight,
+                    1, a(onTextColor));
+
+                s32 baseline = getY() + kPaddingTop;
+                for (const auto& line : m_lines) {
+                    renderer->drawString(line, false, getX() + kLeftInset, baseline,
+                                         m_fontSize, a(mutedColor));
+                    baseline += style::CompactDescriptionLineHeight;
+                }
+            }
+
+            void layout(u16, u16, u16, u16) override {
+                const s32 available = std::max<s32>(1, static_cast<s32>(getWidth()) - kLeftInset - kRightInset);
+                if (available != m_wrappedWidth) {
+                    m_wrappedWidth = available;
+                    rebuildLines(gfx::Renderer::get(), available);
+                }
+                const s32 lineCount = std::max<s32>(1, static_cast<s32>(m_lines.size()));
+                setBoundaries(getX(), getY(), getWidth(),
+                              kPaddingTop + lineCount * style::CompactDescriptionLineHeight + kPaddingBottom);
+            }
+
+            bool onClick(u64) override { return false; }
+            Element* requestFocus(Element*, FocusDirection) override { return nullptr; }
+
+        private:
+            static constexpr s32 kLeftInset = 22;
+            static constexpr s32 kRightInset = 20;
+            static constexpr s32 kPaddingTop = 18;
+            static constexpr s32 kPaddingBottom = 8;
+
+            static size_t nextUtf8(const std::string& value, size_t index) {
+                if (index >= value.size()) return value.size();
+                ++index;
+                while (index < value.size() &&
+                       (static_cast<u8>(value[index]) & 0xC0U) == 0x80U) ++index;
+                return index;
+            }
+
+            void appendWord(gfx::Renderer& renderer, const std::string& word,
+                            s32 width, std::string& line) {
+                if (word.empty()) return;
+                const std::string candidate = line.empty() ? word : line + " " + word;
+                if (renderer.getTextDimensions(candidate, false, m_fontSize).first <= width) {
+                    line = candidate;
+                    return;
+                }
+                if (!line.empty()) {
+                    m_lines.push_back(line);
+                    line.clear();
+                }
+                if (renderer.getTextDimensions(word, false, m_fontSize).first <= width) {
+                    line = word;
+                    return;
+                }
+
+                std::string part;
+                for (size_t pos = 0; pos < word.size();) {
+                    const size_t next = nextUtf8(word, pos);
+                    const std::string probe = part + word.substr(pos, next - pos);
+                    if (!part.empty() && renderer.getTextDimensions(probe, false, m_fontSize).first > width) {
+                        m_lines.push_back(part);
+                        part.clear();
+                    }
+                    part += word.substr(pos, next - pos);
+                    pos = next;
+                }
+                line = part;
+            }
+
+            void rebuildLines(gfx::Renderer& renderer, s32 width) {
+                m_lines.clear();
+                size_t paragraphStart = 0;
+                while (paragraphStart <= m_text.size()) {
+                    size_t paragraphEnd = m_text.find('\n', paragraphStart);
+                    if (paragraphEnd == std::string::npos) paragraphEnd = m_text.size();
+                    const std::string paragraph = m_text.substr(paragraphStart, paragraphEnd - paragraphStart);
+                    if (paragraph.empty()) {
+                        m_lines.emplace_back();
+                    } else {
+                        std::string line;
+                        size_t wordStart = 0;
+                        while (wordStart < paragraph.size()) {
+                            while (wordStart < paragraph.size() && paragraph[wordStart] == ' ') ++wordStart;
+                            if (wordStart >= paragraph.size()) break;
+                            size_t wordEnd = paragraph.find(' ', wordStart);
+                            if (wordEnd == std::string::npos) wordEnd = paragraph.size();
+                            appendWord(renderer, paragraph.substr(wordStart, wordEnd - wordStart), width, line);
+                            wordStart = wordEnd + 1;
+                        }
+                        if (!line.empty()) m_lines.push_back(line);
+                    }
+                    if (paragraphEnd == m_text.size()) break;
+                    paragraphStart = paragraphEnd + 1;
+                }
+            }
+
+            std::string m_text;
+            std::vector<std::string> m_lines;
+            u32 m_fontSize;
+            s32 m_wrappedWidth = -1;
         };
         
 
