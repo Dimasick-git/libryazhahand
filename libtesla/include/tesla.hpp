@@ -4620,11 +4620,34 @@ namespace tsl {
                 cfg::LayerPosX = x;
                 cfg::LayerPosY = y;
                 
-                ASSERT_FATAL(viSetLayerPosition(&this->m_layer, cfg::LayerPosX, cfg::LayerPosY));
+                TSL_LAYER_SETUP(viSetLayerPosition(&this->m_layer, cfg::LayerPosX, cfg::LayerPosY));
             }
 
 
+            // Ryazha style: a theme-coloured strip on the panel edge that faces the
+            // screen (left edge for right-aligned overlays, right edge otherwise).
+            inline void drawAccentEdge() {
+                const s32 x = ult::useRightAlignment ? 0 : static_cast<s32>(tsl::cfg::FramebufferWidth) - 3;
+                drawRect(x, 0, 3, tsl::cfg::FramebufferHeight, a(highlightColor1));
+            }
+
         #if USING_WIDGET_DIRECTIVE
+            static constexpr s32 BatteryGlyphWidth = 22;
+
+            // Ryazha style battery glyph drawn in front of the charge percentage.
+            inline void drawBatteryGlyph(s32 x, s32 baseline, u32 charge, const Color& fillColor) {
+                // 15x10 body + 2 px nub + 5 px gap: fits next to two temperatures.
+                const s32 y = baseline - 13;
+                const Color& outline = defaultTextColor;
+                drawRect(x, y, 15, 1, outline);
+                drawRect(x, y + 9, 15, 1, outline);
+                drawRect(x, y, 1, 10, outline);
+                drawRect(x + 14, y, 1, 10, outline);
+                drawRect(x + 15, y + 3, 2, 4, outline);
+                const s32 fill = static_cast<s32>(std::min<u32>(charge, 100) * 11 / 100);
+                if (fill > 0) drawRect(x + 2, y + 2, fill, 6, fillColor);
+            }
+
             // Method to draw clock, temperatures, and battery percentage
             inline bool drawWidget() {
                 static time_t lastTimeUpdate = 0;
@@ -4764,18 +4787,18 @@ namespace tsl {
                     const int batteryGap = (batteryCharge == 100) ? 4 : 5;
                     
                     if (!ult::hideSOCTemp && socTemp > 0.0f) {
-                        socWidth = getTextDimensions(SOC_temperatureStr, false, 20).first;
+                        socWidth = getTextDimensions(SOC_temperatureStr, false, 18).first;
                         totalWidth += socWidth;
                         hasMultiple = true;
                     }
                     if (!ult::hidePCBTemp && pcbTemp > 0.0f) {
-                        pcbWidth = getTextDimensions(PCB_temperatureStr, false, 20).first;
+                        pcbWidth = getTextDimensions(PCB_temperatureStr, false, 18).first;
                         if (hasMultiple) totalWidth += 5;
                         totalWidth += pcbWidth;
                         hasMultiple = true;
                     }
                     if (!ult::hideBattery && batteryCharge > 0) {
-                        chargeWidth = getTextDimensions(chargeString, false, 20).first;
+                        chargeWidth = getTextDimensions(chargeString, false, 18).first + BatteryGlyphWidth;
                         if (hasMultiple) totalWidth += batteryGap;
                         totalWidth += chargeWidth;
                     }
@@ -4783,7 +4806,7 @@ namespace tsl {
                     int currentX = backdropCenterX - (totalWidth >> 1);
                     if (socWidth > 0) {
                         drawString(
-                            SOC_temperatureStr, false, currentX, y_offset, 20,
+                            SOC_temperatureStr, false, currentX, y_offset, 18,
                             ult::dynamicWidgetColors
                                 ? tsl::GradientColor(socTemp)
                                 : temperatureColor
@@ -4792,7 +4815,7 @@ namespace tsl {
                     }
                     if (pcbWidth > 0) {
                         drawString(
-                            PCB_temperatureStr, false, currentX, y_offset, 20,
+                            PCB_temperatureStr, false, currentX, y_offset, 18,
                             ult::dynamicWidgetColors
                                 ? tsl::GradientColor(pcbTemp)
                                 : temperatureColor
@@ -4803,7 +4826,8 @@ namespace tsl {
                         const Color batteryColorToUse = charging
                             ? batteryChargingColor
                             : (batteryCharge < 20 ? batteryLowColor : batteryColor);
-                        drawString(chargeString, false, currentX, y_offset, 20, batteryColorToUse);
+                        drawBatteryGlyph(currentX, y_offset, batteryCharge, batteryColorToUse);
+                        drawString(chargeString, false, currentX + BatteryGlyphWidth, y_offset, 18, batteryColorToUse);
                     }
                     
                 } else {
@@ -4818,22 +4842,24 @@ namespace tsl {
                         const Color batteryColorToUse = charging
                             ? batteryChargingColor
                             : (batteryCharge < 20 ? batteryLowColor : batteryColor);
-                        chargeWidth = getTextDimensions(chargeString, false, 20).first;
+                        chargeWidth = getTextDimensions(chargeString, false, 18).first + BatteryGlyphWidth;
+                        const s32 chargeX = tsl::cfg::FramebufferWidth - chargeWidth - 25;
+                        drawBatteryGlyph(chargeX, y_offset, batteryCharge, batteryColorToUse);
                         drawString(
                             chargeString, false,
-                            tsl::cfg::FramebufferWidth - chargeWidth - 25,
-                            y_offset, 20, batteryColorToUse
+                            chargeX + BatteryGlyphWidth,
+                            y_offset, 18, batteryColorToUse
                         );
                     }
                     
                     int offset = 0;
                     if (!ult::hidePCBTemp && pcbTemp > 0.0f) {
                         if (!ult::hideBattery) offset -= 5;
-                        pcbWidth = getTextDimensions(PCB_temperatureStr, false, 20).first;
+                        pcbWidth = getTextDimensions(PCB_temperatureStr, false, 18).first;
                         drawString(
                             PCB_temperatureStr, false,
                             tsl::cfg::FramebufferWidth + offset - pcbWidth - chargeWidth - 25,
-                            y_offset, 20,
+                            y_offset, 18,
                             ult::dynamicWidgetColors
                                 ? tsl::GradientColor(pcbTemp)
                                 : defaultTextColor
@@ -6485,6 +6511,7 @@ namespace tsl {
                     renderer->drawWallpaper();
                 else
                     renderer->fillScreen(a(defaultBackgroundColor));
+                renderer->drawAccentEdge();
                 
                 y = 50;
                 offset = 0;
@@ -7159,6 +7186,7 @@ namespace tsl {
                     renderer->drawWallpaper();
                 else
                     renderer->fillScreen(a(defaultBackgroundColor));
+                renderer->drawAccentEdge();
                 renderer->drawRect(15, tsl::cfg::FramebufferHeight - 73, tsl::cfg::FramebufferWidth - 30, 1, a(bottomSeparatorColor));
                 
                 #if USING_WIDGET_DIRECTIVE
