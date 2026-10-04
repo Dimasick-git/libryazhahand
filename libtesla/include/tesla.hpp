@@ -39,6 +39,7 @@
 
 
 #pragma once
+#include "gui_stack.hpp"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -13938,7 +13939,7 @@ namespace tsl {
         
     private:
         using GuiPtr = std::unique_ptr<tsl::Gui>;
-        std::stack<GuiPtr, std::list<GuiPtr>> m_guiStack;
+        impl::GuiStack<tsl::Gui> m_guiStack;
         static inline Overlay *s_overlayInstance = nullptr;
         
         bool m_fadeInAnimationPlaying = false, m_fadeOutAnimationPlaying = false;
@@ -14183,7 +14184,9 @@ namespace tsl {
             static void* lastGuiPtr = nullptr;
             static std::array<bool, 4> lastSimulatedTouch = {};
         
-            auto& currentGui = this->getCurrentGui();
+            if (this->m_guiStack.empty()) return;
+            auto guiDispatch = this->m_guiStack.dispatch();
+            auto* currentGui = this->getCurrentGui().get();
 
             if (!currentGui) {
                 elm::Element::setInputMode(InputMode::Controller);
@@ -14308,14 +14311,14 @@ namespace tsl {
             }
         #endif
         
-            if (currentGui.get() != lastGuiPtr) {
+            if (currentGui != lastGuiPtr) {
                 hasScrolled = false;
                 hadNonScrollTap = false;
                 oldTouchEvent = elm::TouchEvent::None;
                 oldTouchDetected = false;
                 oldTouchPos = { 0 };
                 initialTouchPos = { 0 };
-                lastGuiPtr = currentGui.get();
+                lastGuiPtr = currentGui;
             }
             
             auto topElement = currentGui->getTopElement();
@@ -14367,11 +14370,16 @@ namespace tsl {
             // After a swapTo fires inside a handler, currentGui (a ref to the
             // now-popped unique_ptr) becomes dangling.  All post-call checks must
             // use this raw pointer instead of dereferencing currentGui.
-            tsl::Gui* const guiPtrBefore = currentGui.get();
+            tsl::Gui* const guiPtrBefore = currentGui;
 
             bool handled = false;
-            for (elm::Element* p = currentFocus; !handled && p; p = p->getParent())
-                handled = p->onClick(keysDown) || p->handleInput(keysDown, keysHeld, touchPos, joyStickPosLeft, joyStickPosRight);
+            for (elm::Element* p = currentFocus; !handled && p;) {
+                handled = p->onClick(keysDown);
+                if (this->m_guiStack.empty() || this->getCurrentGui().get() != guiPtrBefore) return;
+                if (!handled) handled = p->handleInput(keysDown, keysHeld, touchPos, joyStickPosLeft, joyStickPosRight);
+                if (this->m_guiStack.empty() || this->getCurrentGui().get() != guiPtrBefore) return;
+                if (!handled) p = p->getParent();
+            }
             
             // Safe swap-detection: compare raw pointers, not the potentially-dangling reference
             if (this->m_guiStack.empty() || this->getCurrentGui().get() != guiPtrBefore) return;

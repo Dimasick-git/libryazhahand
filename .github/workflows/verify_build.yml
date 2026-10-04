@@ -14,10 +14,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  gui-lifetime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check self-closing menus with ASan and UBSan
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer tests/gui_stack.cpp -o /tmp/gui-stack-test
+          /tmp/gui-stack-test
+
   build:
     runs-on: ubuntu-latest
     container:
-      image: devkitpro/devkita64:20251231
+      image: devkitpro/devkita64:latest
 
     steps:
       - name: Checkout
@@ -63,7 +72,7 @@ jobs:
           for f in libryazha/source/*.cpp; do
             [ -f "$f" ] || continue
             echo "  -> $f"
-            aarch64-none-elf-g++ -fsyntax-only -std=gnu++23 \
+            aarch64-none-elf-g++ -fsyntax-only -std=gnu++26 \
               -D__SWITCH__ \
               -I libryazha/include \
               -I libtesla/include \
